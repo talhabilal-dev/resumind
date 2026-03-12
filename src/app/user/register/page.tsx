@@ -1,0 +1,481 @@
+"use client";
+import { useState } from "react";
+import { toast } from "sonner";
+import Link from "next/link";
+import { RegisterFormData, RegisterFormErrors } from "@/types";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
+
+export default function Register() {
+  const router = useRouter();
+
+  const [formData, setFormData] = useState<RegisterFormData>({
+    firstname: "",
+    lastname: "",
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const [errors, setErrors] = useState<RegisterFormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
+
+  const validateForm = (): RegisterFormErrors => {
+    const newErrors: RegisterFormErrors = {};
+
+    // Firstname validation
+    if (!formData.firstname) {
+      newErrors.firstname = "Firstname is required";
+    } else if (formData.firstname.length < 2) {
+      newErrors.firstname = "Firstname must be at least 2 characters";
+    } else if (formData.firstname.length > 30) {
+      newErrors.firstname = "Firstname must be at most 30 characters";
+    } else if (!/^[a-zA-Z]+$/.test(formData.firstname)) {
+      newErrors.firstname = "Firstname can only contain letters";
+    }
+    // Lastname validation
+    if (!formData.lastname) {
+      newErrors.lastname = "Lastname is required";
+    } else if (formData.lastname.length < 2) {
+      newErrors.lastname = "Lastname must be at least 2 characters";
+    } else if (formData.lastname.length > 30) {
+      newErrors.lastname = "Lastname must be at most 30 characters";
+    } else if (!/^[a-zA-Z]+$/.test(formData.lastname)) {
+      newErrors.lastname = "Lastname can only contain letters";
+    }
+    // Username validation
+    if (!formData.username) {
+      newErrors.username = "Username is required";
+    } else if (formData.username.length < 3) {
+      newErrors.username = "Username must be at least 3 characters";
+    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+      newErrors.username =
+        "Username can only contain letters, numbers, and underscores";
+    }
+
+    // Email validation
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password =
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number";
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your password";
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    return newErrors;
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ): void => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Clear specific error when user starts typing
+    if (errors[name as keyof RegisterFormErrors]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+  };
+
+  const handleSubmit = async (
+    e?: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
+    if (e) {
+      e.preventDefault();
+    }
+
+    const newErrors = validateForm();
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length === 0) {
+      setIsSubmitting(true);
+
+      try {
+        const response = await fetch("/api/users/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          // Handle known error from API
+          const errorMessage = data?.error || "Failed to create account.";
+          setErrors({ general: errorMessage });
+          toast.error(errorMessage);
+          return;
+        }
+
+        if (data.success) {
+          // Success
+          toast.success("Account created successfully!");
+          // Redirect to login page
+          router.push("/user/login");
+
+          setFormData({
+            firstname: "",
+            lastname: "",
+            username: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+          });
+
+          setErrors({});
+        }
+      } catch (error: unknown) {
+        console.error("Signup error:", error);
+
+        let errorMessage = "An unexpected error occurred. Please try again.";
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+
+        setErrors({ general: errorMessage });
+        toast.error(errorMessage);
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  const togglePasswordVisibility = (): void => {
+    setShowConfirmPassword((prev) => !prev);
+    // Toggle showPassword only if confirmPassword is being toggled
+
+    setShowPassword((prev) => !prev);
+  };
+
+  return (
+    <div className="app-theme-bg relative flex min-h-screen items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10"></div>
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `radial-gradient(circle at 25% 25%, rgba(147, 51, 234, 0.1) 0%, transparent 50%),
+                             radial-gradient(circle at 75% 75%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)`,
+          }}
+        ></div>
+      </div>
+      <div className="lg:max-w-xl w-full space-y-8">
+        <div>
+          <h2 className="mt-2 text-center text-3xl font-extrabold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+            Create your account
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-400">
+            Join us today and get started
+          </p>
+        </div>
+
+        <div className="theme-card mt-2 space-y-6 rounded-2xl p-6">
+          {/* First + Last Name */}
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="w-full">
+              <label
+                htmlFor="firstname"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                First Name
+              </label>
+              <input
+                id="firstname"
+                name="firstname"
+                type="text"
+                value={formData.firstname}
+                onChange={handleChange}
+                onKeyPress={handleKeyPress}
+                className={`theme-input w-full px-4 py-2 ${
+                  errors.firstname ? "border-red-500" : "border-white/20"
+                }`}
+                placeholder="Enter your first name"
+                aria-describedby={
+                  errors.firstname ? "firstname-error" : undefined
+                }
+              />
+              {errors.firstname && (
+                <p
+                  id="firstname-error"
+                  className="mt-1 text-sm text-red-600"
+                  role="alert"
+                >
+                  {errors.firstname}
+                </p>
+              )}
+            </div>
+
+            <div className="w-full">
+              <label
+                htmlFor="lastname"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Last Name
+              </label>
+              <input
+                id="lastname"
+                name="lastname"
+                type="text"
+                value={formData.lastname}
+                onChange={handleChange}
+                onKeyPress={handleKeyPress}
+                className={`theme-input w-full px-4 py-2 ${
+                  errors.lastname ? "border-red-500" : "border-white/20"
+                }`}
+                placeholder="Enter your last name"
+                aria-describedby={
+                  errors.lastname ? "lastname-error" : undefined
+                }
+              />
+              {errors.lastname && (
+                <p
+                  id="lastname-error"
+                  className="mt-1 text-sm text-red-600"
+                  role="alert"
+                >
+                  {errors.lastname}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Username */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="w-full">
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Username
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                value={formData.username}
+                onChange={handleChange}
+                onKeyPress={handleKeyPress}
+                className={`theme-input w-full px-4 py-2 ${
+                  errors.username ? "border-red-500" : "border-white/20"
+                }`}
+                placeholder="Enter your username"
+                aria-describedby={
+                  errors.username ? "username-error" : undefined
+                }
+              />
+              {errors.username && (
+                <p
+                  id="username-error"
+                  className="mt-1 text-sm text-red-600"
+                  role="alert"
+                >
+                  {errors.username}
+                </p>
+              )}
+            </div>
+
+            {/* Email */}
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                onKeyPress={handleKeyPress}
+                className={`theme-input w-full px-4 py-2 ${
+                  errors.email ? "border-red-500" : "border-white/20"
+                }`}
+                placeholder="Enter your email"
+                aria-describedby={errors.email ? "email-error" : undefined}
+              />
+              {errors.email && (
+                <p
+                  id="email-error"
+                  className="mt-1 text-sm text-red-600"
+                  role="alert"
+                >
+                  {errors.email}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Password Field */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="w-full">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={handleChange}
+                  onKeyPress={handleKeyPress}
+                  className={`theme-input w-full px-4 py-2 pr-12 ${
+                    errors.password ? "border-red-500" : "border-white/20"
+                  }`}
+                  placeholder="Enter your password"
+                  aria-describedby={
+                    errors.password ? "password-error" : undefined
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-300"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+              {errors.password && (
+                <p
+                  id="password-error"
+                  className="mt-1 text-sm text-red-600"
+                  role="alert"
+                >
+                  {errors.password}
+                </p>
+              )}
+            </div>
+
+            {/* Confirm Password Field */}
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Confirm Password
+              </label>
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  onKeyPress={handleKeyPress}
+                  className={`theme-input w-full px-4 py-2 pr-12 ${
+                    errors.confirmPassword
+                      ? "border-red-500"
+                      : "border-white/20"
+                  }`}
+                  placeholder="Confirm your password"
+                  aria-describedby={
+                    errors.confirmPassword
+                      ? "confirm-password-error"
+                      : undefined
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-300"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p
+                  id="confirm-password-error"
+                  className="mt-1 text-sm text-red-600"
+                  role="alert"
+                >
+                  {errors.confirmPassword}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={() => handleSubmit()}
+              disabled={isSubmitting}
+              className={`group relative flex w-full justify-center rounded-xl border border-transparent px-4 py-2 text-sm font-medium text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                isSubmitting
+                  ? "bg-purple-500/50 cursor-not-allowed"
+                  : "theme-button-primary"
+              }`}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin -ml-1 mr-3 h-5 w-5 border-2 border-white/30 border-t-white rounded-full"></div>
+                  Creating Account...
+                </>
+              ) : (
+                "Create Account"
+              )}
+            </button>
+          </div>
+
+          <div className="text-center">
+            <p className="text-sm text-gray-400">
+              Already have an account?{" "}
+              <Link
+                href="/user/login"
+                className="font-medium text-purple-400 hover:text-purple-300 transition-colors"
+              >
+                Sign In
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

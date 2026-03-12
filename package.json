@@ -1,0 +1,45 @@
+{
+  "name": "next-auth-kit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A Next.js authentication kit with NextAuth.js, MongoDB, and Tailwind CSS",
+  "keywords": [
+    "nextjs",
+    "next-auth",
+    "mongodb",
+    "tailwindcss",
+    "authentication"
+  ],
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.0",
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.1",
+    "lucide-react": "^0.577.0",
+    "mongoose": "^9.3.0",
+    "next": "16.1.6",
+    "next-themes": "^0.4.6",
+    "prettier": "^3.8.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "resend": "^6.9.3",
+    "sonner": "^2.0.7",
+    "stripe": "^20.4.1",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.1",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.4.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "tailwindcss": "^4.2.1",
+    "typescript": "^5.9.3"
+  }
+}
