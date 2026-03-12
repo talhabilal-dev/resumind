@@ -28,10 +28,25 @@ export const resetPasswordSchema = z.object({
     password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+export const updateProfileSchema = z.object({
+    firstname: z.string().min(2, "First name must be at least 2 characters").max(30, "First name must be at most 30 characters"),
+    lastname: z.string().min(2, "Last name must be at least 2 characters").max(30, "Last name must be at most 30 characters"),
+    username: z.string().min(3, "Username must be at least 3 characters").max(30, "Username must be at most 30 characters").regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
+    bio: z.string().max(160, "Bio must be at most 160 characters").optional().or(z.literal("")),
+});
+
+export const deleteAccountSchema = z.object({
+    confirmation: z.string().refine((value) => value === "DELETE", {
+        message: "Type DELETE to confirm account deletion",
+    }),
+});
+
 export type SignupData = z.infer<typeof signupSchema>;
 export type SigninData = z.infer<typeof signinSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
 export type ForgotPasswordEmailData = z.infer<typeof forgotPasswordEmailSchema>;
 export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
+export type UpdateProfileData = z.infer<typeof updateProfileSchema>;
+export type DeleteAccountData = z.infer<typeof deleteAccountSchema>;
 
 

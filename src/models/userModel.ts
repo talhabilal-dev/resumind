@@ -16,6 +16,7 @@ export interface IUser extends Document {
   verificationToken?: string;
   verificationTokenExpiry?: Date;
   refreshToken?: string;
+  credits: number;
 }
 
 const userSchema = new Schema<IUser>({
@@ -88,6 +89,10 @@ const userSchema = new Schema<IUser>({
   refreshToken: {
     type: String,
     select: false,
+  },
+  credits: {
+    type: Number,
+    default: 10 // signup bonus
   },
   createdAt: {
     type: Date,

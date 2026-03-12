@@ -3,16 +3,17 @@ import User from "@/models/userModel";
 import { NextResponse, NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { decodeToken } from "@/helpers/decodeToken";
+import { changePasswordSchema } from "@/schemas/userSchema";
 
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
     const payload: any = await decodeToken(req);
+    const userId = payload?.userId;
 
-    const userId = payload.userId;
-
-    const { currentPassword, newPassword } = await req.json();
+    const body = await req.json();
+    const parsed = changePasswordSchema.safeParse(body);
 
     if (!userId) {
       return NextResponse.json(
@@ -20,15 +21,18 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
-    if (!currentPassword || !newPassword) {
+    if (!parsed.success) {
       return NextResponse.json(
         {
-          error: "Current password and new password are required.",
+          error: parsed.error.issues[0]?.message || "Invalid password payload.",
           success: false,
         },
         { status: 400 }
       );
     }
+
+    const { currentPassword, newPassword } = parsed.data;
+
     const user = await User.findById(userId).select("+password");
     if (!user) {
       return NextResponse.json(
