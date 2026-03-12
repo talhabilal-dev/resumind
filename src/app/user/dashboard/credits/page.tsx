@@ -1,11 +1,14 @@
 "use client";
 
 import React from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { BadgeDollarSign, Check, CreditCard, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { type CreditPackId } from "@/schemas/creditsSchema";
 
 type CreditFeature = {
   name: string;
@@ -14,6 +17,7 @@ type CreditFeature = {
 };
 
 type CreditPack = {
+  id: CreditPackId;
   name: string;
   credits: number;
   priceUsd: number;
@@ -49,9 +53,9 @@ const FEATURE_COSTS: CreditFeature[] = [
 ];
 
 const CREDIT_PACKS: CreditPack[] = [
-  { name: "Starter", credits: 50, priceUsd: 5 },
-  { name: "Growth", credits: 150, priceUsd: 15, highlighted: true },
-  { name: "Pro", credits: 400, priceUsd: 40 },
+  { id: "starter", name: "Starter", credits: 50, priceUsd: 5 },
+  { id: "growth", name: "Growth", credits: 150, priceUsd: 15, highlighted: true },
+  { id: "pro", name: "Pro", credits: 400, priceUsd: 40 },
 ];
 
 const formatUsd = (value: number) =>
@@ -62,8 +66,58 @@ const formatUsd = (value: number) =>
   }).format(value);
 
 const CreditsPage: React.FC = () => {
-  const onStripeCheckout = (pack: CreditPack) => {
-    toast.info(`Stripe checkout for ${pack.name} is frontend-only right now.`);
+  const searchParams = useSearchParams();
+  const [isCheckingOutPack, setIsCheckingOutPack] = useState<CreditPackId | null>(null);
+  const [credits, setCredits] = useState<number | null>(null);
+
+  const fetchCredits = async () => {
+    try {
+      const response = await fetch("/api/users/profile");
+      const payload = await response.json();
+      if (response.ok && payload?.user && typeof payload.user.credits === "number") {
+        setCredits(payload.user.credits);
+      }
+    } catch {
+      // Keep checkout flow functional even if profile fetch fails.
+    }
+  };
+
+  useEffect(() => {
+    fetchCredits();
+
+    if (searchParams.get("success") === "1") {
+      toast.success("Payment successful. Credits updated.");
+      return;
+    }
+
+    if (searchParams.get("canceled") === "1") {
+      toast.info("Checkout canceled.");
+    }
+  }, [searchParams]);
+
+  const onStripeCheckout = async (pack: CreditPack) => {
+    setIsCheckingOutPack(pack.id);
+    try {
+      const response = await fetch("/api/users/credits/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ packId: pack.id }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload?.checkoutUrl) {
+        throw new Error(payload?.error || "Unable to start checkout.");
+      }
+
+      window.location.href = payload.checkoutUrl;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Stripe checkout failed.";
+      toast.error(message);
+    } finally {
+      setIsCheckingOutPack(null);
+    }
   };
 
   return (
@@ -81,6 +135,19 @@ const CreditsPage: React.FC = () => {
       </header>
 
       <main className="space-y-6 p-4 sm:p-6">
+        <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
+          <h2 className="text-lg font-semibold text-foreground">Current Balance</h2>
+          <p className="mt-1 text-sm text-foreground/65">Your usable credit balance for resume tasks.</p>
+          <div className="mt-3 flex items-end gap-2">
+            <p className="text-3xl font-bold text-foreground">{credits === null ? "--" : credits}</p>
+            <p className="pb-1 text-xs text-foreground/60">
+              {credits === null
+                ? "Loading balance..."
+                : `~$${(credits * 0.1).toFixed(2)} value at 1 credit = $0.10`}
+            </p>
+          </div>
+        </section>
+
         <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-foreground">Credit Packs</h2>
           <p className="mt-1 text-sm text-foreground/65">
@@ -124,10 +191,11 @@ const CreditsPage: React.FC = () => {
                 <Button
                   type="button"
                   onClick={() => onStripeCheckout(pack)}
+                  disabled={isCheckingOutPack !== null}
                   className="mt-4 w-full gradient-accent border-0 text-white"
                 >
                   <CreditCard className="mr-2 h-4 w-4" />
-                  Checkout with Stripe
+                  {isCheckingOutPack === pack.id ? "Redirecting..." : "Checkout with Stripe"}
                 </Button>
               </article>
             ))}
@@ -136,10 +204,7 @@ const CreditsPage: React.FC = () => {
           <div className="mt-5 rounded-lg border border-rose-500/20 bg-black/20 p-3 text-xs text-foreground/70">
             <div className="flex items-center gap-2">
               <BadgeDollarSign className="h-4 w-4 text-rose-300" />
-              <p>
-                Frontend only: connect this page to Stripe Checkout session API when backend is
-                ready.
-              </p>
+              <p>Checkout is handled with Stripe-hosted payment flow.</p>
             </div>
           </div>
         </section>

@@ -1,12 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
-import { FileText, Upload } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FileText, Sparkles, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { resumeUploadSchema } from "@/schemas/resumeSchema";
+import {
+  RESUME_TASK_CREDIT_COST,
+  resumeAgentTaskSchema,
+  type ResumeAgentTask,
+} from "@/schemas/resumeAgentSchema";
 
 type ResumeFormData = {
   jobTitle: string;
@@ -19,7 +25,40 @@ type ResumeFormErrors = Partial<Record<keyof ResumeFormData, string>> & {
   general?: string;
 };
 
+type AnalysisResponse = {
+  output: {
+    summary: string;
+    score: number | null;
+    recommendations: Array<{
+      title: string;
+      action: string;
+      impact: "low" | "medium" | "high";
+    }>;
+    missingKeywords: string[];
+  };
+  safeguards: {
+    citationCoverage: number;
+    warnings: string[];
+  };
+  cost: {
+    creditsCharged: number;
+    tokenUsage: {
+      totalTokens: number;
+    };
+  };
+};
+
+const TASK_LABELS: Record<ResumeAgentTask, string> = {
+  full_resume_analysis: "Full Resume Analysis",
+  job_description_match: "Job Description Match",
+  cover_letter_generator: "Cover Letter Generator",
+  bullet_point_optimization: "Bullet Point Optimization",
+  full_resume_rewrite: "Full Resume Rewrite",
+};
+
 const AnalyzePage: React.FC = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState<ResumeFormData>({
     jobTitle: "",
     jobDescription: "",
@@ -28,6 +67,16 @@ const AnalyzePage: React.FC = () => {
   });
   const [errors, setErrors] = useState<ResumeFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<ResumeAgentTask>("full_resume_analysis");
+  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
+
+  useEffect(() => {
+    const urlTask = searchParams.get("task");
+    const parsedTask = resumeAgentTaskSchema.safeParse(urlTask);
+    if (parsedTask.success) {
+      setSelectedTask(parsedTask.data);
+    }
+  }, [searchParams]);
 
   const clearFieldError = (field: keyof ResumeFormData) => {
     if (errors[field]) {
@@ -58,9 +107,36 @@ const AnalyzePage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // API intentionally not implemented yet. This confirms local validation + form readiness.
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      toast.success("Resume form validated. Analyzer API integration is next.");
+      if (!formData.resumeText.trim()) {
+        throw new Error("Please paste resume text to run AI analysis.");
+      }
+
+      const response = await fetch("/api/users/resume/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task: selectedTask,
+          jobTitle: formData.jobTitle,
+          jobDescription: formData.jobDescription,
+          resumeText: formData.resumeText,
+          strictMode: true,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload?.data) {
+        throw new Error(payload?.error || "Failed to analyze resume.");
+      }
+
+      setAnalysis(payload.data as AnalysisResponse);
+      toast.success(
+        `Analysis complete. ${payload.credits?.charged || RESUME_TASK_CREDIT_COST[selectedTask]} credits used.`
+      );
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Analysis failed.";
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -86,6 +162,26 @@ const AnalyzePage: React.FC = () => {
           </p>
 
           <form className="mt-5 space-y-5" onSubmit={handleSubmit}>
+            <div>
+              <label className="mb-1 block text-sm text-foreground/80">
+                Analysis Task
+              </label>
+              <div className="flex items-center justify-between rounded-lg border border-rose-500/25 bg-black/20 px-4 py-2.5">
+                <p className="text-sm text-foreground">{TASK_LABELS[selectedTask]}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-8 border-rose-500/30 bg-white/5 text-foreground hover:bg-white/10"
+                  onClick={() => router.push("/user/dashboard/tasks")}
+                >
+                  Change
+                </Button>
+              </div>
+              <p className="mt-1 text-xs text-rose-200">
+                Credits required: {RESUME_TASK_CREDIT_COST[selectedTask]}
+              </p>
+            </div>
+
             <div>
               <label htmlFor="jobTitle" className="mb-1 block text-sm text-foreground/80">
                 Job Name
@@ -176,11 +272,65 @@ const AnalyzePage: React.FC = () => {
                 className="gradient-accent border-0 text-white"
               >
                 <FileText className="mr-2 h-4 w-4" />
-                {isSubmitting ? "Validating..." : "Continue to Analysis"}
+                {isSubmitting ? "Analyzing..." : "Run Analysis"}
               </Button>
             </div>
           </form>
         </section>
+
+        {analysis && (
+          <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">Analysis Result</h2>
+              <span className="text-sm text-foreground/70">
+                Score: {analysis.output.score !== null ? `${analysis.output.score}/100` : "N/A"}
+              </span>
+            </div>
+
+            <p className="text-sm text-foreground/80">{analysis.output.summary}</p>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="rounded-lg border border-rose-500/20 bg-black/20 p-3">
+                <p className="mb-2 text-sm font-medium text-foreground">Recommendations</p>
+                <ul className="space-y-2 text-sm text-foreground/80">
+                  {analysis.output.recommendations.slice(0, 4).map((rec) => (
+                    <li key={rec.title} className="rounded-md border border-rose-500/15 bg-white/5 p-2">
+                      <p className="font-medium">{rec.title}</p>
+                      <p className="text-foreground/70">{rec.action}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="rounded-lg border border-rose-500/20 bg-black/20 p-3">
+                <p className="mb-2 text-sm font-medium text-foreground">Missing Keywords</p>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.output.missingKeywords.slice(0, 12).map((keyword) => (
+                    <span
+                      key={keyword}
+                      className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-xs text-rose-100"
+                    >
+                      {keyword}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-rose-500/20 bg-black/20 p-3 text-xs text-foreground/70">
+              <p className="mb-1 flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-rose-300" />
+                Tokens used: {analysis.cost.tokenUsage.totalTokens} | Credits charged: {analysis.cost.creditsCharged}
+              </p>
+              <p>
+                Citation coverage: {(analysis.safeguards.citationCoverage * 100).toFixed(0)}%
+                {analysis.safeguards.warnings.length > 0
+                  ? ` | Warnings: ${analysis.safeguards.warnings.length}`
+                  : ""}
+              </p>
+            </div>
+          </section>
+        )}
       </main>
     </>
   );

@@ -9,7 +9,7 @@ import {
   History,
   LayoutList,
   LogOut,
-  Sparkles,
+  ListChecks,
 } from "lucide-react";
 
 import {
@@ -48,7 +48,7 @@ export default function DashboardLayout({
   const menuItems = useMemo(
     () => [
       { name: "Dashboard", href: "/user/dashboard", icon: LayoutList },
-      { name: "Analyze Resume", href: "/user/dashboard/analyze", icon: Sparkles },
+      { name: "Select Task", href: "/user/dashboard/tasks", icon: ListChecks },
       { name: "Resume History", href: "/user/dashboard/history", icon: History },
       { name: "Buy Credits", href: "/user/dashboard/credits", icon: CircleDollarSign },
       { name: "Settings", href: "/user/dashboard/settings", icon: Gauge },

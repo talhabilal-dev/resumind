@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CircleDollarSign,
@@ -16,6 +16,23 @@ import { Button } from "@/components/ui/button";
 
 const Page: React.FC = () => {
   const router = useRouter();
+  const [credits, setCredits] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        const response = await fetch("/api/users/profile");
+        const payload = await response.json();
+        if (response.ok && payload?.user && typeof payload.user.credits === "number") {
+          setCredits(payload.user.credits);
+        }
+      } catch {
+        // Keep dashboard usable even if profile fetch fails.
+      }
+    };
+
+    fetchCredits();
+  }, []);
 
   return (
     <>
@@ -32,9 +49,9 @@ const Page: React.FC = () => {
           <Button
             type="button"
             className="gradient-accent border-0 text-white"
-            onClick={() => router.push("/user/dashboard/analyze")}
+            onClick={() => router.push("/user/dashboard/tasks")}
           >
-            Analyze New Resume
+            Select Analysis Task
             <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
@@ -65,8 +82,14 @@ const Page: React.FC = () => {
               <div>
                 <p className="text-sm text-foreground/70">Available Credits</p>
                 <div className="mt-1 flex items-end gap-2">
-                  <p className="text-3xl font-bold text-foreground">26</p>
-                  <p className="pb-1 text-xs text-foreground/60">~$2.60 value at 1 credit = $0.10</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {credits === null ? "--" : credits}
+                  </p>
+                  <p className="pb-1 text-xs text-foreground/60">
+                    {credits === null
+                      ? "Loading balance..."
+                      : `~$${(credits * 0.1).toFixed(2)} value at 1 credit = $0.10`}
+                  </p>
                 </div>
                 <p className="mt-2 text-sm text-foreground/75">
                   Full Resume Analysis: 5 credits, Job Match: 3, Cover Letter: 4, Bullet Optimization: 1, Full Rewrite: 8.
