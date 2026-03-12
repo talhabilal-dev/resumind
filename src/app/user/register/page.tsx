@@ -111,6 +111,7 @@ export default function Register() {
 
       if (data.success) {
         toast.success("Account created successfully!");
+        const registeredEmail = formData.email;
         setFormData({
           firstname: "",
           lastname: "",
@@ -120,7 +121,7 @@ export default function Register() {
           confirmPassword: "",
         });
         setErrors({});
-        router.push("/user/login");
+        router.push(`/user/verify/sent?email=${encodeURIComponent(registeredEmail)}`);
       }
     } catch (error: unknown) {
       console.error("Signup error:", error);

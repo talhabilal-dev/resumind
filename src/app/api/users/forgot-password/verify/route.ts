@@ -2,20 +2,22 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/userModel";
 import { NextResponse, NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
+import { resetPasswordSchema } from "@/schemas/userSchema";
 
 const EMAIL_SUBJECT = "Password Reset Verification";
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const { token, password } = await req.json();
-
-    if (!token) {
+    const body = await req.json();
+    const parsed = resetPasswordSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Token is required.", success: false },
+        { error: parsed.error.issues[0]?.message || "Invalid payload.", success: false },
         { status: 400 }
       );
     }
+    const { token, password } = parsed.data;
 
     // Find user by verification token
     const user = await User.findOne({

@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/userModel";
 import { NextResponse, NextRequest } from "next/server";
 import { sendEmail } from "@/helpers/mailer";
+import { forgotPasswordEmailSchema } from "@/schemas/userSchema";
 
 const EMAIL_SUBJECT = "Password Reset Verification";
 
@@ -9,23 +10,15 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const { email } = await req.json();
-    if (!email) {
+    const body = await req.json();
+    const parsed = forgotPasswordEmailSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Email is required.", success: false },
+        { error: parsed.error.issues[0]?.message || "Invalid email.", success: false },
         { status: 400 }
       );
     }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: "Invalid email format.", success: false },
-        { status: 400 }
-      );
-    }
+    const { email } = parsed.data;
 
     // Check if email exists in the database
     const existingUser = await User.findOne({ email });

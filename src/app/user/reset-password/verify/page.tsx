@@ -1,56 +1,62 @@
 "use client";
-import React, { useState } from "react";
-import { useSearchParams } from "next/navigation";
-import {
-  Lock,
-  ArrowLeft,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
 
-const Page: React.FC = () => {
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AlertCircle, ArrowRight, Brain, CheckCircle2, Eye, EyeOff, Lock } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { resetPasswordSchema } from "@/schemas/userSchema";
+
+export default function VerifyResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
-  const [state, setState] = useState({
-    password: "",
-    confirmPassword: "",
-    isLoading: false,
-    isSuccess: false,
-    error: null as string | null,
-  });
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleChange =
-    (field: "password" | "confirmPassword") =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setState((prev) => ({ ...prev, [field]: e.target.value, error: null }));
-    };
+  const validate = (): string | null => {
+    if (!token) {
+      return "Invalid or missing token.";
+    }
 
-  const validate = () => {
-    if (!state.password || !state.confirmPassword) {
-      return "Please fill in both password fields.";
+    const parsed = resetPasswordSchema.safeParse({
+      token,
+      password,
+    });
+
+    if (!parsed.success) {
+      return parsed.error.issues[0]?.message || "Invalid password reset payload.";
     }
-    if (state.password.length < 6) {
-      return "Password must be at least 6 characters.";
+
+    if (!confirmPassword) {
+      return "Please confirm your password.";
     }
-    if (state.password !== state.confirmPassword) {
+
+    if (password !== confirmPassword) {
       return "Passwords do not match.";
     }
+
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const error = validate();
-    if (error) {
-      return setState((prev) => ({ ...prev, error }));
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
     }
 
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    setIsLoading(true);
+    setError(null);
 
     try {
       const res = await fetch("/api/users/forgot-password/verify", {
@@ -58,7 +64,7 @@ const Page: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ token, password: state.password }),
+        body: JSON.stringify({ token, password }),
       });
 
       const data = await res.json();
@@ -66,173 +72,169 @@ const Page: React.FC = () => {
         throw new Error(data?.error || "Failed to reset password.");
       }
 
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        isSuccess: true,
-        password: "",
-        confirmPassword: "",
-      }));
-    } catch (err: any) {
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: err.message || "Something went wrong.",
-      }));
+      setIsSuccess(true);
+      setPassword("");
+      setConfirmPassword("");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleBackToLogin = () => {
-    router.push("/user/login");
-  };
-
-  const gradientBg = "app-theme-bg";
-
   if (!token) {
     return (
-      <div
-        className={`min-h-screen ${gradientBg} flex items-center justify-center p-4`}
-      >
-        <div className="theme-card max-w-md w-full rounded-xl p-8 text-center text-white">
-          <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">
-            Invalid or Missing Token
-          </h2>
-          <p className="text-sm text-gray-300 mb-6">
-            The password reset link may be invalid or expired.
-          </p>
-          <button
-            onClick={handleBackToLogin}
-            className="theme-button-primary rounded-lg px-6 py-3 font-medium text-white transition"
-          >
-            Back to Login
-          </button>
+      <div className="relative min-h-screen bg-background overflow-hidden px-4 py-10 sm:px-6 lg:px-8">
+        <div className="fixed inset-0 aurora-bg -z-10">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-96 bg-linear-to-b from-rose-900/30 via-transparent to-transparent blur-3xl" />
+          <div className="absolute top-40 right-0 w-96 h-96 bg-linear-to-l from-pink-900/20 via-transparent to-transparent blur-3xl" />
+          <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-linear-to-t from-rose-900/20 via-transparent to-transparent blur-3xl" />
         </div>
-      </div>
-    );
-  }
 
-  if (state.isSuccess) {
-    return (
-      <div
-        className={`min-h-screen ${gradientBg} flex items-center justify-center p-4`}
-      >
-        <div className="theme-card max-w-md w-full rounded-xl p-8 text-center text-white">
-          <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-8 h-8 text-green-400" />
+        <div className="mx-auto flex min-h-[80vh] w-full max-w-3xl items-center justify-center">
+          <div className="w-full max-w-lg rounded-2xl glow-card bg-background/60 p-7 text-center backdrop-blur-md sm:p-9">
+            <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-300" />
+            <h1 className="text-2xl font-bold text-foreground">Invalid Reset Link</h1>
+            <p className="mt-2 text-foreground/70">This password reset link is missing a valid token or may have expired.</p>
+            <Button className="mt-5 gradient-accent border-0 text-white" onClick={() => router.push("/user/reset-password")}>Request New Link</Button>
           </div>
-          <h2 className="text-2xl font-semibold mb-2">Password Updated!</h2>
-          <p className="text-sm text-gray-300 mb-6">
-            Your password has been successfully reset. You can now log in with
-            your new password.
-          </p>
-          <button
-            onClick={handleBackToLogin}
-            className="theme-button-primary w-full rounded-lg py-3 font-medium text-white transition"
-          >
-            Go to Login
-          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      className={`min-h-screen ${gradientBg} flex items-center justify-center p-4 relative`}
-    >
-      <div className="absolute inset-0 opacity-40 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10" />
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `radial-gradient(circle at 25% 25%, rgba(147, 51, 234, 0.1) 0%, transparent 50%),
-              radial-gradient(circle at 75% 75%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)`,
-          }}
-        />
+    <div className="relative min-h-screen bg-background overflow-hidden px-4 py-10 sm:px-6 lg:px-8">
+      <div className="fixed inset-0 aurora-bg -z-10">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-96 bg-linear-to-b from-rose-900/30 via-transparent to-transparent blur-3xl" />
+        <div className="absolute top-40 right-0 w-96 h-96 bg-linear-to-l from-pink-900/20 via-transparent to-transparent blur-3xl" />
+        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-linear-to-t from-rose-900/20 via-transparent to-transparent blur-3xl" />
       </div>
 
-      <div className="theme-card relative max-w-md w-full rounded-xl p-8 text-white">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-semibold mb-2">Reset Your Password</h1>
-          <p className="text-sm text-gray-300">
-            Enter and confirm your new password below.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm text-gray-300 mb-2">
-              New Password
-            </label>
-            <input
-              type="password"
-              value={state.password}
-              onChange={handleChange("password")}
-              className={`theme-input w-full rounded-lg border px-4 py-3 text-white ${
-                state.error ? "border-red-500" : "border-white/20"
-              } focus:outline-none focus:ring-2 focus:ring-purple-500 transition`}
-              placeholder="New password"
-              disabled={state.isLoading}
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-300 mb-2">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              value={state.confirmPassword}
-              onChange={handleChange("confirmPassword")}
-              className={`theme-input w-full rounded-lg border px-4 py-3 text-white ${
-                state.error ? "border-red-500" : "border-white/20"
-              } focus:outline-none focus:ring-2 focus:ring-purple-500 transition`}
-              placeholder="Confirm password"
-              disabled={state.isLoading}
-            />
-          </div>
-
-          {state.error && (
-            <div className="flex items-center text-sm text-red-400">
-              <AlertCircle className="w-4 h-4 mr-1" />
-              {state.error}
+      <div className="mx-auto flex min-h-[80vh] w-full max-w-4xl items-center justify-center">
+        <div className="w-full max-w-2xl rounded-2xl glow-card bg-background/60 p-6 backdrop-blur-md sm:p-8">
+          <div className="mb-6 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg gradient-accent">
+              <Brain className="h-6 w-6 text-white" />
             </div>
+            <h1 className="text-3xl font-bold text-foreground sm:text-4xl">Set a new password</h1>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-foreground/70 sm:text-base">
+              Choose a secure password to regain access to your account.
+            </p>
+          </div>
+
+          {isSuccess ? (
+            <div className="space-y-5">
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-300" />
+                  <div>
+                    <p className="font-medium text-emerald-200">Password updated</p>
+                    <p className="mt-1 text-sm text-foreground/70">
+                      Your password has been reset successfully. You can now sign in.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                className="w-full gradient-accent border-0 text-white"
+                onClick={() => router.push("/user/login")}
+              >
+                Go to Login
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="password" className="mb-1 block text-sm text-foreground/80">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    className={`w-full rounded-lg border bg-white/5 px-4 py-2.5 pr-11 text-foreground placeholder:text-foreground/40 outline-none transition focus:ring-2 focus:ring-rose-400/40 ${
+                      error ? "border-red-500/70" : "border-rose-500/25"
+                    }`}
+                    placeholder="At least 6 characters"
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-foreground/60 hover:text-foreground"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="mb-1 block text-sm text-foreground/80">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    className={`w-full rounded-lg border bg-white/5 px-4 py-2.5 pr-11 text-foreground placeholder:text-foreground/40 outline-none transition focus:ring-2 focus:ring-rose-400/40 ${
+                      error ? "border-red-500/70" : "border-rose-500/25"
+                    }`}
+                    placeholder="Re-enter password"
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-foreground/60 hover:text-foreground"
+                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div className="flex items-center gap-2 text-sm text-red-300">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="h-11 w-full gradient-accent border-0 text-white"
+              >
+                {isLoading ? "Resetting..." : "Reset Password"}
+                {!isLoading && <Lock className="ml-2 h-4 w-4" />}
+              </Button>
+            </form>
           )}
 
-          <button
-            type="submit"
-            disabled={state.isLoading}
-            className="theme-button-primary flex w-full items-center justify-center rounded-lg py-3 font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {state.isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Resetting...
-              </>
-            ) : (
-              <>
-                <Lock className="w-4 h-4 mr-2" />
-                Reset Password
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <button
-            onClick={handleBackToLogin}
-            className="inline-flex items-center text-sm text-purple-300 hover:text-purple-400 font-medium transition"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back to Login
-          </button>
+          <p className="mt-6 text-center text-sm text-foreground/65">
+            Back to{" "}
+            <Link href="/user/login" className="font-medium text-rose-300 hover:text-rose-200">
+              Login
+            </Link>
+          </p>
         </div>
       </div>
     </div>
   );
-};
-
-export default Page;
+}

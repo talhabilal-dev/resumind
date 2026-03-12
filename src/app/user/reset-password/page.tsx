@@ -1,240 +1,172 @@
 "use client";
-import React, { useState } from "react";
-import {
-  Mail,
-  ArrowLeft,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-} from "lucide-react";
+
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AlertCircle, ArrowRight, Brain, CheckCircle2, Mail, RefreshCcw } from "lucide-react";
 
-import { ForgotPasswordState } from "@/types";
+import { Button } from "@/components/ui/button";
+import { forgotPasswordEmailSchema } from "@/schemas/userSchema";
 
-const Page: React.FC = () => {
+export default function ResetPasswordPage() {
   const router = useRouter();
-  const [state, setState] = useState<ForgotPasswordState>({
-    email: "",
-    isLoading: false,
-    isSuccess: false,
-    error: null,
-  });
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  const validateEmail = (email: string): boolean =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setState((prev) => ({ ...prev, email: e.target.value, error: null }));
+  const validateEmail = (value: string): string | null => {
+    const parsed = forgotPasswordEmailSchema.safeParse({ email: value.trim() });
+    if (!parsed.success) {
+      return parsed.error.issues[0]?.message || "Invalid email address";
+    }
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!state.email) {
-      return setState((prev) => ({
-        ...prev,
-        error: "Please enter your email address",
-      }));
-    }
-    if (!validateEmail(state.email)) {
-      return setState((prev) => ({
-        ...prev,
-        error: "Please enter a valid email address",
-      }));
+
+    const validationError = validateEmail(email);
+    if (validationError) {
+      setError(validationError);
+      return;
     }
 
-    setState((prev) => ({
-      ...prev,
-      isLoading: true,
-      error: null,
-      isSuccess: false,
-    }));
+    setIsLoading(true);
+    setError(null);
 
     try {
       const response = await fetch("/api/users/forgot-password/sent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: state.email }),
+        body: JSON.stringify({ email: email.trim() }),
       });
 
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data?.error || "Failed to send reset link.");
       }
 
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        isSuccess: true,
-      }));
-    } catch (error: any) {
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: error?.message || "Something went wrong.",
-      }));
+      setIsSuccess(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleBackToLogin = () => {
-    router.push("/user/login");
-  };
-
-  const handleResendEmail = () => {
-    setState((prev) => ({ ...prev, isSuccess: false, error: null }));
-  };
-
-  const gradientBg = "app-theme-bg";
-
-  if (state.isSuccess) {
-    return (
-      <div className={`min-h-screen ${gradientBg} flex items-center justify-center p-4 relative`}>
-        <div className="absolute inset-0 opacity-40 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10" />
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `radial-gradient(circle at 25% 25%, rgba(147, 51, 234, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 75% 75%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)`,
-            }}
-          />
-        </div>
-        <div className="theme-card relative max-w-md w-full rounded-xl p-8 text-white">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-400" />
-            </div>
-            <h1 className="text-2xl font-semibold mb-2">Check Your Email</h1>
-            <p className="text-sm text-gray-300">
-              We've sent a password reset link to
-            </p>
-            <p className="mt-1 font-medium text-white">{state.email}</p>
-          </div>
-
-          <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4 mb-6 text-sm text-purple-200">
-            <p className="font-medium mb-2">What’s next?</p>
-            <ul className="space-y-1">
-              <li>• Check your email inbox</li>
-              <li>• Click the reset link</li>
-              <li>• Create a new password</li>
-              <li>• Check spam if you don’t see it</li>
-            </ul>
-          </div>
-
-          <div className="space-y-3">
-            <button
-              onClick={handleBackToLogin}
-              className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg text-white font-medium hover:from-pink-600 hover:to-purple-700 transition"
-            >
-              <ArrowLeft className="inline-block w-4 h-4 mr-2" />
-              Back to Login
-            </button>
-            <button
-              onClick={handleResendEmail}
-              className="w-full py-3 border border-white/20 rounded-lg text-white hover:bg-white/10 transition"
-            >
-              Resend Email
-            </button>
-          </div>
-
-          <p className="text-xs text-gray-400 text-center mt-6">
-            Didn’t get the email? Check your spam or contact support.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className={`min-h-screen ${gradientBg} flex items-center justify-center p-4 relative`}>
-      <div className="absolute inset-0 opacity-40 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-zinc-500/10" />
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `radial-gradient(circle at 25% 25%, rgba(147, 51, 234, 0.1) 0%, transparent 50%),
-              radial-gradient(circle at 75% 75%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)`,
-          }}
-        />
+    <div className="relative min-h-screen bg-background overflow-hidden px-4 py-10 sm:px-6 lg:px-8">
+      <div className="fixed inset-0 aurora-bg -z-10">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-96 bg-linear-to-b from-rose-900/30 via-transparent to-transparent blur-3xl" />
+        <div className="absolute top-40 right-0 w-96 h-96 bg-linear-to-l from-pink-900/20 via-transparent to-transparent blur-3xl" />
+        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-linear-to-t from-rose-900/20 via-transparent to-transparent blur-3xl" />
       </div>
-      <div className="theme-card relative max-w-md w-full rounded-xl p-8 text-white">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <Mail className="w-8 h-8 text-white" />
+
+      <div className="mx-auto flex min-h-[80vh] w-full max-w-4xl items-center justify-center">
+        <div className="w-full max-w-2xl rounded-2xl glow-card bg-background/60 p-6 backdrop-blur-md sm:p-8">
+          <div className="mb-6 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg gradient-accent">
+              <Brain className="h-6 w-6 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-foreground sm:text-4xl">Reset your password</h1>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-foreground/70 sm:text-base">
+              Enter your email and we&apos;ll send you a secure reset link.
+            </p>
           </div>
-          <h1 className="text-2xl font-semibold mb-2">Forgot Password?</h1>
-          <p className="text-sm text-gray-300">
-            No worries — enter your email and we’ll send you a reset link.
+
+          {isSuccess ? (
+            <div className="space-y-5">
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-300" />
+                  <div>
+                    <p className="font-medium text-emerald-200">Reset email sent</p>
+                    <p className="mt-1 text-sm text-foreground/70">
+                      We sent a password reset link to <span className="text-foreground">{email}</span>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-rose-500/20 bg-white/5 p-4 text-sm text-foreground/75">
+                <p className="font-medium text-foreground mb-2">Next steps</p>
+                <p>1. Open your inbox and click the reset link.</p>
+                <p>2. If you don&apos;t see it, check your spam folder.</p>
+                <p>3. Return here if you need to resend the email.</p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsSuccess(false)}
+                  className="border border-rose-500/30 bg-white/5 text-foreground hover:bg-white/10"
+                >
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  Resend Email
+                </Button>
+                <Button
+                  type="button"
+                  className="gradient-accent border-0 text-white"
+                  onClick={() => router.push("/user/login")}
+                >
+                  Back to Login
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="mb-1 block text-sm text-foreground/80">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    placeholder="you@example.com"
+                    disabled={isLoading}
+                    className={`w-full rounded-lg border bg-white/5 px-4 py-2.5 pr-10 text-foreground placeholder:text-foreground/40 outline-none transition focus:ring-2 focus:ring-rose-400/40 ${
+                      error ? "border-red-500/70" : "border-rose-500/25"
+                    }`}
+                  />
+                  <Mail className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/55" />
+                </div>
+                {error && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-red-300">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{error}</span>
+                  </div>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="h-11 w-full gradient-accent border-0 text-white"
+              >
+                {isLoading ? "Sending..." : "Send Reset Link"}
+                {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+              </Button>
+            </form>
+          )}
+
+          <p className="mt-6 text-center text-sm text-foreground/65">
+            Remember your password?{" "}
+            <Link href="/user/login" className="font-medium text-rose-300 hover:text-rose-200">
+              Sign in
+            </Link>
           </p>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm text-gray-300 mb-2">
-              Email Address
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={state.email}
-              onChange={handleEmailChange}
-              placeholder="Enter your email"
-              disabled={state.isLoading}
-              className={`theme-input w-full px-4 py-3 rounded-lg border transition ${
-                state.error
-                  ? "border-red-500 focus:ring-red-500"
-                  : "border-white/20 focus:ring-purple-500"
-              } focus:outline-none focus:ring-2`}
-            />
-            {state.error && (
-              <div className="flex items-center mt-2 text-sm text-red-400">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                {state.error}
-              </div>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={state.isLoading || !state.email}
-            className="theme-button-primary flex w-full items-center justify-center rounded-lg py-3 font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {state.isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Mail className="w-4 h-4 mr-2" />
-                Send Reset Link
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <button
-            onClick={handleBackToLogin}
-            className="inline-flex items-center text-sm text-purple-300 hover:text-purple-400 font-medium transition"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back to Login
-          </button>
-        </div>
-
-        <p className="text-xs text-gray-400 text-center mt-6">
-          Remember your password?{" "}
-          <button
-            onClick={handleBackToLogin}
-            className="text-purple-300 hover:text-purple-400 font-medium"
-          >
-            Sign in here
-          </button>
-        </p>
       </div>
     </div>
   );
-};
-
-export default Page;
+}
