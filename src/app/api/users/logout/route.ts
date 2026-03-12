@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   response.cookies.set("token", "", {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? "none" : "lax", // prevent Chrome cookie rejection
+    sameSite: "lax", // prevent Chrome cookie rejection
     expires: new Date(0),
     path: "/",
   });
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   response.cookies.set("refreshToken", "", {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? "none" : "lax",
+    sameSite: "lax", // prevent Chrome cookie rejection
     expires: new Date(0),
     path: "/",
   });

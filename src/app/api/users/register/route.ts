@@ -3,6 +3,7 @@ import User from "@/models/userModel";
 import { NextResponse, NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "@/helpers/mailer";
+import { signupSchema } from "@/schemas/userSchema";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,9 +11,17 @@ export async function POST(req: NextRequest) {
 
     const { firstname, lastname, username, email, password } = await req.json();
 
-    if (!firstname || !lastname || !username || !email || !password) {
+    // Validate input
+    const { error } = signupSchema.safeParse({
+      firstname,
+      lastname,
+      username,
+      email,
+      password,
+    });
+    if (error) {
       return NextResponse.json(
-        { error: "All fields are required.", success: false },
+        { error: error.issues[0].message, success: false },
         { status: 400 }
       );
     }

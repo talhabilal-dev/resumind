@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Toaster } from "@/components/ui/sonner";
-import { Space_Grotesk, Rajdhani } from "next/font/google";
+import { Space_Grotesk, Rajdhani, Inter } from "next/font/google";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next";
+import { cn } from "@/lib/utils";
+
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -16,8 +17,8 @@ const rajdhani = Rajdhani({
 });
 
 export const metadata: Metadata = {
-  title: "Next-Auth-Kit",
-  description: "A stylish and secure Next.js authentication starter kit",
+  title: "Resumind - An Ai-Powered Resume Builder and Analysis Tool",
+  description: "Resumind is an AI-powered resume builder and analysis tool designed to help job seekers create professional resumes and optimize them for applicant tracking systems (ATS). With Resumind, users can easily build their resumes using customizable templates, receive AI-driven feedback on content and formatting, and analyze their resumes against job descriptions to improve their chances of landing interviews.",
 };
 
 export default function RootLayout({
@@ -26,14 +27,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={cn("dark", "font-sans", inter.variable)}>
       <body
         className={`${spaceGrotesk.variable} ${rajdhani.variable} antialiased`}
         style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
       >
         {children}
-        <Analytics />
-        <Toaster />
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { NextResponse, NextRequest } from "next/server";
 import { SignJWT } from "jose";
 import { TokenData } from "@/types";
+import { signinSchema } from "@/schemas/userSchema";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,9 +12,10 @@ export async function POST(req: NextRequest) {
 
     const { email, password, rememberMe } = await req.json();
 
-    if (!email || !password) {
+    const { error } = signinSchema.safeParse({ email, password, rememberMe });
+    if (error) {
       return NextResponse.json(
-        { error: "Email and password are required.", success: false },
+        { error: error.issues[0].message, success: false },
         { status: 400 }
       );
     }
@@ -84,13 +86,13 @@ export async function POST(req: NextRequest) {
     response.cookies.set("token", token, {
       httpOnly: true,
       secure: true,
-      sameSite: "none",
+      sameSite: "lax",
       maxAge: 60 * 60, // 1 hour
     });
     response.cookies.set("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "none",
+      sameSite: "lax",
       maxAge: rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60,
     });
 
