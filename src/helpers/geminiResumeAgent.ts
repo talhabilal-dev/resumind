@@ -8,77 +8,93 @@ import {
   resumeAgentResultSchema,
   type ResumeAgentResult,
 } from "@/schemas/resumeAgentSchema";
+import { createAgent, toolStrategy } from "langchain";
+import { ChatOpenAI } from "@langchain/openai";
 
-const DEFAULT_GEMINI_MODEL = "gemini-2.0-flash";
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
+
+/** Fraction of input budget allocated to the job description. */
+const JD_INPUT_CHARS_RATIO = 0.75;
+
+/**
+ * Rough heuristic: 1 token ≈ 4 characters of English text.
+ * Used only as a fallback when the model does not return usage metadata.
+ */
+const CHARS_PER_TOKEN = 4;
 
 const TASK_TOKEN_BUDGET: Record<
   ResumeAgentInput["task"],
   { maxInputChars: number; maxOutputTokens: number }
 > = {
-  full_resume_analysis: { maxInputChars: 16000, maxOutputTokens: 1200 },
-  job_description_match: { maxInputChars: 14000, maxOutputTokens: 900 },
-  cover_letter_generator: { maxInputChars: 15000, maxOutputTokens: 1200 },
-  bullet_point_optimization: { maxInputChars: 10000, maxOutputTokens: 700 },
-  full_resume_rewrite: { maxInputChars: 18000, maxOutputTokens: 1800 },
+  full_resume_analysis: { maxInputChars: 16_000, maxOutputTokens: 1_200 },
+  job_description_match: { maxInputChars: 14_000, maxOutputTokens: 900 },
+  cover_letter_generator: { maxInputChars: 15_000, maxOutputTokens: 1_200 },
+  bullet_point_optimization: { maxInputChars: 10_000, maxOutputTokens: 700 },
+  full_resume_rewrite: { maxInputChars: 18_000, maxOutputTokens: 1_800 },
 };
 
+/** Citation coverage thresholds that determine hallucination risk levels. */
+const CITATION_THRESHOLDS = {
+  HIGH_RISK: 0.4,
+  MEDIUM_RISK: 0.75,
+  LOW_CONFIDENCE_CAP: 0.45,
+} as const;
+
+// ─── Error class ─────────────────────────────────────────────────────────────
+
 export class ResumeAgentError extends Error {
-  constructor(message: string, public code: string) {
+  constructor(message: string, public readonly code: string) {
     super(message);
     this.name = "ResumeAgentError";
   }
 }
 
+// ─── Input helpers ───────────────────────────────────────────────────────────
+
 function clampInput(input: string, maxChars: number): string {
-  if (input.length <= maxChars) {
-    return input;
-  }
-  return `${input.slice(0, maxChars)}\n\n[TRUNCATED_FOR_TOKEN_BUDGET]`;
-}
-
-function extractJson(text: string): string {
-  const trimmed = text.trim();
-  if (trimmed.startsWith("```") && trimmed.endsWith("```")) {
-    return trimmed.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  }
-
-  const firstBrace = trimmed.indexOf("{");
-  const lastBrace = trimmed.lastIndexOf("}");
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    return trimmed.slice(firstBrace, lastBrace + 1);
-  }
-  return trimmed;
+  return input.length <= maxChars
+    ? input
+    : `${input.slice(0, maxChars)}\n\n[TRUNCATED_FOR_TOKEN_BUDGET]`;
 }
 
 function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
+  return Math.ceil(text.length / CHARS_PER_TOKEN);
 }
+
+// ─── Prompt construction ─────────────────────────────────────────────────────
 
 function taskSpecificInstructions(task: ResumeAgentInput["task"]): string {
-  switch (task) {
-    case "full_resume_analysis":
-      return "Provide ATS-style scoring, strengths, gaps, and prioritized recommendations.";
-    case "job_description_match":
-      return "Focus on alignment to job requirements, keyword gaps, and role-fit score.";
-    case "cover_letter_generator":
-      return "Generate a concise tailored cover letter draft grounded only in provided resume and job description.";
-    case "bullet_point_optimization":
-      return "Return concrete optimized bullet points with measurable impact language where justified.";
-    case "full_resume_rewrite":
-      return "Rewrite resume text with clear structure and stronger action-oriented phrasing while preserving factual claims.";
-    default:
-      return "Provide grounded, useful output.";
-  }
+  const instructions: Record<ResumeAgentInput["task"], string> = {
+    full_resume_analysis:
+      "Provide ATS-style scoring, strengths, gaps, and prioritized recommendations.",
+    job_description_match:
+      "Focus on alignment to job requirements, keyword gaps, and role-fit score.",
+    cover_letter_generator:
+      "Generate a concise tailored cover letter draft grounded only in the provided resume and job description.",
+    bullet_point_optimization:
+      "Return concrete optimized bullet points with measurable impact language where justified.",
+    full_resume_rewrite:
+      "Rewrite resume text with clear structure and stronger action-oriented phrasing while preserving factual claims.",
+  };
+  return instructions[task];
 }
 
-function buildPrompt(input: ResumeAgentInput): string {
+function buildSystemPrompt(task: ResumeAgentInput["task"]): string {
   return [
     "You are a strict resume analysis agent.",
     "Rules: never invent experience, metrics, employers, technologies, or achievements.",
     "If evidence is insufficient, explicitly say so in assumptions and lower confidence.",
     "Every major claim must be backed by short direct citations from the provided text.",
-    "Output must be valid JSON only and follow the target schema.",
-    taskSpecificInstructions(input.task),
+    "Output must follow the exact structured response schema.",
+    taskSpecificInstructions(task),
+  ].join("\n");
+}
+
+function buildUserPrompt(input: ResumeAgentInput): string {
+  return [
+    "Analyze this resume request and return a schema-valid response.",
     "",
     `Task: ${input.task}`,
     `Job Title: ${input.jobTitle}`,
@@ -98,171 +114,222 @@ function buildPrompt(input: ResumeAgentInput): string {
   ].join("\n");
 }
 
+// ─── Token usage extraction ───────────────────────────────────────────────────
+
+interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
+/**
+ * Extracts token usage from a LangChain agent response, with estimated
+ * fallbacks when the model does not return usage metadata.
+ */
+function extractTokenUsage(
+  agentResponse: unknown,
+  inputFallback: number,
+  outputFallback: number,
+): TokenUsage {
+  const messages = (agentResponse as { messages?: unknown[] })?.messages ?? [];
+  const lastMessage = messages.at(-1) ?? {};
+  const meta =
+    (lastMessage as Record<string, unknown>)?.usage_metadata ??
+    ((lastMessage as Record<string, Record<string, unknown>>)?.response_metadata
+      ?.usage_metadata) ??
+    {};
+
+  const pick = (...keys: string[]): number => {
+    for (const key of keys) {
+      const val = Number((meta as Record<string, unknown>)[key]);
+      if (!isNaN(val) && val > 0) return val;
+    }
+    return 0;
+  };
+
+  const inputTokens =
+    pick("input_tokens", "prompt_token_count", "promptTokenCount") || inputFallback;
+  const outputTokens =
+    pick("output_tokens", "candidates_token_count", "candidatesTokenCount") || outputFallback;
+  const totalTokens =
+    pick("total_tokens", "totalTokenCount") || inputTokens + outputTokens;
+
+  return { inputTokens, outputTokens, totalTokens };
+}
+
+// ─── Citation validation ──────────────────────────────────────────────────────
+
+interface CitationValidationResult {
+  coverage: number;
+  warnings: string[];
+  hallucinationRisk: ResumeAgentOutput["hallucinationRisk"];
+}
+
 function validateCitations(
   output: ResumeAgentOutput,
   resumeText: string,
-  jobDescription?: string
-): { coverage: number; warnings: string[]; hallucinationRisk: ResumeAgentOutput["hallucinationRisk"] } {
-  const warnings: string[] = [];
+  jobDescription?: string,
+): CitationValidationResult {
   const resumeLower = resumeText.toLowerCase();
-  const jdLower = (jobDescription || "").toLowerCase();
+  const jdLower = (jobDescription ?? "").toLowerCase();
 
-  let valid = 0;
-  for (const citation of output.evidence.citations) {
-    const quote = citation.quote.toLowerCase();
-    const isInResume = resumeLower.includes(quote);
-    const isInJob = jdLower.includes(quote);
-    const sourceMatch =
-      (citation.source === "resume" && isInResume) ||
-      (citation.source === "job_description" && isInJob);
+  const warnings: string[] = [];
+  let validCount = 0;
 
-    if (sourceMatch) {
-      valid += 1;
+  for (const { quote, source } of output.evidence.citations) {
+    const quoteLower = quote.toLowerCase();
+    const grounded =
+      (source === "resume" && resumeLower.includes(quoteLower)) ||
+      (source === "job_description" && jdLower.includes(quoteLower));
+
+    if (grounded) {
+      validCount++;
     } else {
-      warnings.push(`Citation not grounded in declared source: \"${citation.quote.slice(0, 60)}...\"
-`);
+      warnings.push(`Citation not grounded in declared source: "${quote.slice(0, 60)}…"`);
     }
   }
 
-  const coverage = output.evidence.citations.length
-    ? valid / output.evidence.citations.length
-    : 0;
+  const total = output.evidence.citations.length;
+  const coverage = total > 0 ? validCount / total : 0;
 
-  let hallucinationRisk: ResumeAgentOutput["hallucinationRisk"] = output.hallucinationRisk;
-  if (coverage < 0.4) {
-    hallucinationRisk = "high";
-  } else if (coverage < 0.75 && hallucinationRisk === "low") {
-    hallucinationRisk = "medium";
-  }
+  const hallucinationRisk: ResumeAgentOutput["hallucinationRisk"] =
+    coverage < CITATION_THRESHOLDS.HIGH_RISK
+      ? "high"
+      : coverage < CITATION_THRESHOLDS.MEDIUM_RISK && output.hallucinationRisk === "low"
+        ? "medium"
+        : output.hallucinationRisk;
 
   return { coverage, warnings, hallucinationRisk };
 }
+
+// ─── Credits ─────────────────────────────────────────────────────────────────
 
 export function getRequiredCredits(task: ResumeAgentInput["task"]): number {
   return RESUME_TASK_CREDIT_COST[task];
 }
 
-export function ensureEnoughCredits(creditsAvailable: number, task: ResumeAgentInput["task"]): void {
+/** Throws `ResumeAgentError` if the caller does not have enough credits. */
+export function ensureEnoughCredits(
+  creditsAvailable: number,
+  task: ResumeAgentInput["task"],
+): void {
   const required = getRequiredCredits(task);
   if (creditsAvailable < required) {
     throw new ResumeAgentError(
-      `Insufficient credits. Required ${required}, available ${creditsAvailable}.`,
-      "INSUFFICIENT_CREDITS"
+      `Insufficient credits: required ${required}, available ${creditsAvailable}.`,
+      "INSUFFICIENT_CREDITS",
     );
   }
 }
 
-export async function analyzeResumeWithGemini(rawInput: ResumeAgentInput): Promise<ResumeAgentResult> {
-  const parsedInput = resumeAgentInputSchema.safeParse(rawInput);
-  if (!parsedInput.success) {
+// ─── Core analysis function ───────────────────────────────────────────────────
+
+export async function analyzeResumeWithGPT(
+  rawInput: ResumeAgentInput,
+): Promise<ResumeAgentResult> {
+  // 1. Validate input.
+  const parsed = resumeAgentInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
     throw new ResumeAgentError(
-      parsedInput.error.issues[0]?.message || "Invalid analysis input.",
-      "INVALID_INPUT"
+      parsed.error.issues[0]?.message ?? "Invalid analysis input.",
+      "INVALID_INPUT",
     );
   }
 
-  const input = parsedInput.data;
+  const input = parsed.data;
   ensureEnoughCredits(input.creditsAvailable, input.task);
 
+  // 2. Apply token budget constraints.
   const budget = TASK_TOKEN_BUDGET[input.task];
-  const resumeText = clampInput(input.resumeText, budget.maxInputChars);
-  const jobDescription = clampInput(input.jobDescription || "", Math.floor(budget.maxInputChars * 0.75));
-
-  const requestInput: ResumeAgentInput = {
+  const clampedInput: ResumeAgentInput = {
     ...input,
-    resumeText,
-    jobDescription,
+    resumeText: clampInput(input.resumeText, budget.maxInputChars),
+    jobDescription: clampInput(
+      input.jobDescription ?? "",
+      Math.floor(budget.maxInputChars * JD_INPUT_CHARS_RATIO),
+    ),
   };
 
-  const prompt = buildPrompt(requestInput);
-  const inputTokenEstimate = estimateTokens(prompt);
+  // 3. Build prompt and estimate token usage for fallback purposes.
+  const userPrompt = buildUserPrompt(clampedInput);
+  const inputTokenEstimate = estimateTokens(userPrompt);
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  // 4. Invoke the LangChain agent.
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new ResumeAgentError("GEMINI_API_KEY is not configured.", "MISSING_API_KEY");
+    throw new ResumeAgentError("OPENAI_API_KEY is not configured.", "MISSING_API_KEY");
   }
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.1,
-          topP: 0.9,
-          maxOutputTokens: budget.maxOutputTokens,
-          responseMimeType: "application/json",
-        },
-      }),
-    }
-  );
+  const model = new ChatOpenAI({
+    apiKey,
+    model: DEFAULT_OPENAI_MODEL,
+    temperature: 0.1,
+    maxTokens: budget.maxOutputTokens,
+  });
 
-  if (!response.ok) {
-    const failureText = await response.text();
+  let agentResponse: unknown;
+  try {
+    const agent = createAgent({
+      model,
+      // Tool strategy avoids provider strict JSON-schema limitations on optional keys.
+      responseFormat: toolStrategy(resumeAgentOutputSchema),
+      systemPrompt: buildSystemPrompt(clampedInput.task),
+    });
+    agentResponse = await agent.invoke({ messages: [{ role: "user", content: userPrompt }] });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     throw new ResumeAgentError(
-      `Gemini request failed (${response.status}): ${failureText}`,
-      "MODEL_REQUEST_FAILED"
+      `LangChain agent request failed: ${message}`,
+      "MODEL_REQUEST_FAILED",
     );
   }
 
-  const payload = await response.json();
-  const rawText =
-    payload?.candidates?.[0]?.content?.parts
-      ?.map((part: { text?: string }) => part.text || "")
-      .join("\n") || "";
-
-  if (!rawText.trim()) {
-    throw new ResumeAgentError("Gemini returned an empty response.", "EMPTY_MODEL_RESPONSE");
-  }
-
-  let modelJson: unknown;
-  try {
-    modelJson = JSON.parse(extractJson(rawText));
-  } catch {
-    throw new ResumeAgentError("Model response was not valid JSON.", "INVALID_JSON_OUTPUT");
+  // 5. Extract and validate structured output.
+  const modelJson = (agentResponse as { structuredResponse?: unknown })?.structuredResponse;
+  if (!modelJson) {
+    throw new ResumeAgentError(
+      "LangChain agent returned no structured output.",
+      "EMPTY_MODEL_RESPONSE",
+    );
   }
 
   const parsedOutput = resumeAgentOutputSchema.safeParse(modelJson);
   if (!parsedOutput.success) {
     throw new ResumeAgentError(
-      parsedOutput.error.issues[0]?.message || "Model output did not match schema.",
-      "INVALID_SCHEMA_OUTPUT"
+      parsedOutput.error.issues[0]?.message ?? "Model output did not match schema.",
+      "INVALID_SCHEMA_OUTPUT",
     );
   }
 
+  // 6. Validate citations and adjust risk/confidence accordingly.
   const output = parsedOutput.data;
-  const citationCheck = validateCitations(output, requestInput.resumeText, requestInput.jobDescription);
+  const citation = validateCitations(output, clampedInput.resumeText, clampedInput.jobDescription);
+  const { inputTokens, outputTokens, totalTokens } = extractTokenUsage(
+    agentResponse,
+    inputTokenEstimate,
+    estimateTokens(JSON.stringify(output)),
+  );
 
-  const usage = payload?.usageMetadata;
-  const outputTokens = Number(usage?.candidatesTokenCount || usage?.outputTokenCount || 0);
-  const inputTokens = Number(usage?.promptTokenCount || usage?.inputTokenCount || inputTokenEstimate);
-  const totalTokens = Number(usage?.totalTokenCount || inputTokens + outputTokens);
-
+  // 7. Assemble final result.
   const creditsCharged = getRequiredCredits(input.task);
   const result = {
     output: {
       ...output,
-      hallucinationRisk: citationCheck.hallucinationRisk,
+      hallucinationRisk: citation.hallucinationRisk,
       confidence:
-        citationCheck.coverage < 0.4
-          ? Math.min(output.confidence, 0.45)
+        citation.coverage < CITATION_THRESHOLDS.HIGH_RISK
+          ? Math.min(output.confidence, CITATION_THRESHOLDS.LOW_CONFIDENCE_CAP)
           : output.confidence,
     },
     cost: {
       creditsCharged,
       usdCharged: Number((creditsCharged * CREDIT_USD_RATE).toFixed(2)),
-      tokenUsage: {
-        inputTokens,
-        outputTokens,
-        totalTokens,
-      },
+      tokenUsage: { inputTokens, outputTokens, totalTokens },
     },
     safeguards: {
-      validationPassed: citationCheck.coverage >= 0.4,
-      citationCoverage: Number(citationCheck.coverage.toFixed(2)),
-      warnings: citationCheck.warnings,
+      validationPassed: citation.coverage >= CITATION_THRESHOLDS.HIGH_RISK,
+      citationCoverage: Number(citation.coverage.toFixed(2)),
+      warnings: citation.warnings,
     },
   };
 
@@ -273,3 +340,8 @@ export async function analyzeResumeWithGemini(rawInput: ResumeAgentInput): Promi
 
   return parsedResult.data;
 }
+
+/**
+ * @deprecated Renamed to `analyzeResumeWithGPT`. This alias will be removed in a future release.
+ */
+export const analyzeResumeWithGemini = analyzeResumeWithGPT;

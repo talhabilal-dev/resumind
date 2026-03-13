@@ -4,21 +4,46 @@ import { connectDB } from "@/lib/db";
 import { decodeToken } from "@/helpers/decodeToken";
 import User from "@/models/userModel";
 import { ResumeModel } from "@/models/resumeModel";
+import { CreditTransactionModel } from "@/models/transactionModel";
 import {
-  analyzeResumeWithGemini,
+  analyzeResumeWithGPT,
   getRequiredCredits,
   ResumeAgentError,
 } from "@/helpers/geminiResumeAgent";
 import { resumeAgentApiRequestSchema } from "@/schemas/resumeAgentSchema";
 
+function serializeError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause,
+    };
+  }
+
+  return {
+    value: error,
+  };
+}
+
 export async function POST(req: NextRequest) {
+  const requestId = `analyze-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
   try {
+    console.log("[resume:analyze] request:start", { requestId });
     await connectDB();
+    console.log("[resume:analyze] db:connected", { requestId });
 
     const payload: any = await decodeToken(req);
     const userId = payload?.userId;
+    console.log("[resume:analyze] auth:decoded", {
+      requestId,
+      hasUserId: Boolean(userId),
+    });
 
     if (!userId) {
+      console.warn("[resume:analyze] auth:missing-user", { requestId });
       return NextResponse.json(
         { error: "Unauthorized. Please log in.", success: false },
         { status: 401 }
@@ -27,8 +52,16 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const parsedBody = resumeAgentApiRequestSchema.safeParse(body);
+    console.log("[resume:analyze] body:parsed", {
+      requestId,
+      parseSuccess: parsedBody.success,
+    });
 
     if (!parsedBody.success) {
+      console.warn("[resume:analyze] body:invalid", {
+        requestId,
+        issues: parsedBody.error.issues,
+      });
       return NextResponse.json(
         {
           error: parsedBody.error.issues[0]?.message || "Invalid analysis request.",
@@ -39,6 +72,11 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await User.findById(userId).select("credits email username");
+    console.log("[resume:analyze] user:loaded", {
+      requestId,
+      found: Boolean(user),
+    });
+
     if (!user) {
       return NextResponse.json(
         { error: "User not found.", success: false },
@@ -47,6 +85,13 @@ export async function POST(req: NextRequest) {
     }
 
     const requiredCredits = getRequiredCredits(parsedBody.data.task);
+    console.log("[resume:analyze] credits:check", {
+      requestId,
+      requiredCredits,
+      availableCredits: user.credits,
+      task: parsedBody.data.task,
+    });
+
     if (user.credits < requiredCredits) {
       return NextResponse.json(
         {
@@ -61,14 +106,26 @@ export async function POST(req: NextRequest) {
 
     let analysis;
     try {
-      analysis = await analyzeResumeWithGemini({
+      analysis = await analyzeResumeWithGPT({
         ...parsedBody.data,
         userId: String(user._id),
         creditsAvailable: user.credits,
         strictMode: parsedBody.data.strictMode ?? true,
       });
+      console.log("[resume:analyze] ai:completed", {
+        requestId,
+        hasOutput: Boolean(analysis?.output),
+        tokenUsage: analysis?.cost?.tokenUsage,
+      });
+
     } catch (error: unknown) {
       if (error instanceof ResumeAgentError) {
+        console.error("[resume:analyze] ai:resume-agent-error", {
+          requestId,
+          code: error.code,
+          message: error.message,
+        });
+
         const status =
           error.code === "INVALID_INPUT"
             ? 400
@@ -84,6 +141,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      console.error("[resume:analyze] ai:unexpected-error", {
+        requestId,
+        error: serializeError(error),
+      });
       throw error;
     }
 
@@ -93,6 +154,12 @@ export async function POST(req: NextRequest) {
       { new: true }
     ).select("credits");
 
+    console.log("[resume:analyze] credits:charged", {
+      requestId,
+      chargeSuccess: Boolean(chargedUser),
+      remainingCredits: chargedUser?.credits,
+    });
+
     if (!chargedUser) {
       return NextResponse.json(
         {
@@ -101,6 +168,21 @@ export async function POST(req: NextRequest) {
         },
         { status: 409 }
       );
+    }
+
+    try {
+      await CreditTransactionModel.create({
+        userId: user._id,
+        amount: requiredCredits,
+        type: "usage",
+        description: `Credits used for ${parsedBody.data.task} (${requiredCredits} credits)`,
+      });
+    } catch (error: any) {
+      // Do not fail successful analysis if transaction logging fails.
+      console.error("[resume:analyze] transaction-log:error", {
+        requestId,
+        error: serializeError(error),
+      });
     }
 
     const history = await ResumeModel.create({
@@ -122,6 +204,11 @@ export async function POST(req: NextRequest) {
       keywords: analysis.output.missingKeywords,
     });
 
+    console.log("[resume:analyze] history:created", {
+      requestId,
+      historyId: String(history._id),
+    });
+
     return NextResponse.json(
       {
         message: "Resume analysis completed.",
@@ -139,7 +226,10 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
   } catch (error: any) {
-    console.error("Resume analyze API error:", error.message);
+    console.error("[resume:analyze] request:failed", {
+      requestId,
+      error: serializeError(error),
+    });
     return NextResponse.json(
       {
         error: "Failed to analyze resume. Please try again.",

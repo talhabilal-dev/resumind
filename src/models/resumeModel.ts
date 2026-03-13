@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from "mongoose"
+import { Schema, model, models, Document, Types, Model } from "mongoose"
 
 export interface IExperience {
     company: string
@@ -190,4 +190,35 @@ const resumeSchema = new Schema<IResume>(
     }
 )
 
-export const ResumeModel = model<IResume>("Resume", resumeSchema)
+console.log("[resume:model] init:start", {
+    hasCompiledResumeModel: Boolean(models.Resume),
+    compiledModelNames: Object.keys(models)
+})
+
+export const ResumeModel: Model<IResume> = (() => {
+    try {
+        if (models.Resume) {
+            console.log("[resume:model] init:reuse-existing")
+            return models.Resume as Model<IResume>
+        }
+
+        console.log("[resume:model] init:compile-new")
+        return model<IResume>("Resume", resumeSchema)
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error("[resume:model] init:error", {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+                compiledModelNames: Object.keys(models)
+            })
+        } else {
+            console.error("[resume:model] init:error", {
+                value: error,
+                compiledModelNames: Object.keys(models)
+            })
+        }
+
+        throw error
+    }
+})()

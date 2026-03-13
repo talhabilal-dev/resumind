@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import {
   CalendarClock,
   CheckCircle2,
@@ -24,53 +25,14 @@ type ResumeHistoryItem = {
   status: ResumeHistoryStatus;
 };
 
-const HISTORY_DATA: ResumeHistoryItem[] = [
-  {
-    id: "RH-24031",
-    createdAt: "2026-03-10 09:45",
-    jobTitle: "Senior Frontend Engineer",
-    workflow: "Full Resume Analysis",
-    creditsUsed: 5,
-    score: 84,
-    status: "completed",
-  },
-  {
-    id: "RH-24032",
-    createdAt: "2026-03-10 12:11",
-    jobTitle: "Product Manager",
-    workflow: "Job Description Match",
-    creditsUsed: 3,
-    score: 91,
-    status: "completed",
-  },
-  {
-    id: "RH-24033",
-    createdAt: "2026-03-11 08:20",
-    jobTitle: "Data Analyst",
-    workflow: "Bullet Point Optimization",
-    creditsUsed: 1,
-    score: null,
-    status: "processing",
-  },
-  {
-    id: "RH-24034",
-    createdAt: "2026-03-11 15:07",
-    jobTitle: "UX Designer",
-    workflow: "Cover Letter Generator",
-    creditsUsed: 4,
-    score: null,
-    status: "failed",
-  },
-  {
-    id: "RH-24035",
-    createdAt: "2026-03-12 10:03",
-    jobTitle: "Backend Engineer",
-    workflow: "Full Resume Rewrite",
-    creditsUsed: 8,
-    score: 88,
-    status: "completed",
-  },
-];
+function formatDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString();
+}
 
 const STATUS_STYLES: Record<
   ResumeHistoryStatus,
@@ -94,8 +56,53 @@ const STATUS_STYLES: Record<
 };
 
 const ResumeHistoryPage: React.FC = () => {
-  const totalCreditsUsed = HISTORY_DATA.reduce((acc, item) => acc + item.creditsUsed, 0);
-  const completedCount = HISTORY_DATA.filter((item) => item.status === "completed").length;
+  const [historyData, setHistoryData] = React.useState<ResumeHistoryItem[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch("/api/users/resume/history", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        const payload = await response.json();
+        if (!response.ok || !payload?.success) {
+          throw new Error(payload?.error || "Failed to load resume history.");
+        }
+
+        if (mounted) {
+          setHistoryData(Array.isArray(payload.history) ? payload.history : []);
+        }
+      } catch (fetchError: any) {
+        if (mounted) {
+          setError(fetchError?.message || "Failed to load resume history.");
+          setHistoryData([]);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    run();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const totalCreditsUsed = historyData.reduce((acc, item) => acc + item.creditsUsed, 0);
+  const completedCount = historyData.filter((item) => item.status === "completed").length;
 
   return (
     <>
@@ -115,7 +122,7 @@ const ResumeHistoryPage: React.FC = () => {
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <article className="glow-card rounded-xl bg-white/5 p-4">
             <p className="text-sm text-foreground/70">Total History Records</p>
-            <p className="mt-2 text-2xl font-bold text-foreground">{HISTORY_DATA.length}</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">{historyData.length}</p>
           </article>
 
           <article className="glow-card rounded-xl bg-white/5 p-4">
@@ -142,6 +149,19 @@ const ResumeHistoryPage: React.FC = () => {
           </p>
 
           <div className="mt-4 overflow-x-auto">
+            {loading ? (
+              <div className="rounded-lg border border-rose-500/15 bg-black/20 px-4 py-8 text-center text-sm text-foreground/70">
+                Loading resume history...
+              </div>
+            ) : error ? (
+              <div className="rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-8 text-center text-sm text-red-200">
+                {error}
+              </div>
+            ) : historyData.length === 0 ? (
+              <div className="rounded-lg border border-rose-500/15 bg-black/20 px-4 py-8 text-center text-sm text-foreground/70">
+                No resume history found yet.
+              </div>
+            ) : (
             <table className="min-w-full border-separate border-spacing-y-2 text-left text-sm">
               <thead>
                 <tr>
@@ -151,15 +171,16 @@ const ResumeHistoryPage: React.FC = () => {
                   <th className="px-3 py-2 text-foreground/65">Credits</th>
                   <th className="px-3 py-2 text-foreground/65">Score</th>
                   <th className="px-3 py-2 text-foreground/65">Status</th>
+                  <th className="px-3 py-2 text-foreground/65">Details</th>
                 </tr>
               </thead>
               <tbody>
-                {HISTORY_DATA.map((item) => {
+                {historyData.map((item) => {
                   const status = STATUS_STYLES[item.status];
                   return (
                     <tr key={item.id} className="rounded-lg bg-black/20">
                       <td className="rounded-l-lg border-y border-l border-rose-500/15 px-3 py-3 text-foreground/80">
-                        {item.createdAt}
+                        {formatDateTime(item.createdAt)}
                       </td>
                       <td className="border-y border-rose-500/15 px-3 py-3 font-medium text-foreground">
                         {item.jobTitle}
@@ -184,11 +205,20 @@ const ResumeHistoryPage: React.FC = () => {
                           {status.label}
                         </span>
                       </td>
+                      <td className="rounded-r-lg border-y border-r border-rose-500/15 px-3 py-3">
+                        <Link
+                          href={`/user/dashboard/history/${item.id}`}
+                          className="inline-flex items-center rounded-md border border-rose-500/30 bg-rose-500/10 px-2.5 py-1 text-xs text-rose-100 hover:bg-rose-500/20"
+                        >
+                          View Details
+                        </Link>
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+            )}
           </div>
         </section>
 

@@ -1,5 +1,5 @@
 
-import { Document, model, Schema, Types } from "mongoose"
+import { Document, model, models, Model, Schema, Types } from "mongoose"
 
 
 export interface IPayment extends Document {
@@ -31,4 +31,6 @@ const paymentSchema = new Schema<IPayment>(
     { timestamps: true }
 )
 
-export const PaymentModel = model<IPayment>("Payment", paymentSchema)
+export const PaymentModel: Model<IPayment> = models.Payment
+    ? (models.Payment as Model<IPayment>)
+    : model<IPayment>("Payment", paymentSchema)

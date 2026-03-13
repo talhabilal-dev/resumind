@@ -10,6 +10,7 @@ import {
   LayoutList,
   LogOut,
   ListChecks,
+  ReceiptText,
 } from "lucide-react";
 
 import {
@@ -50,6 +51,7 @@ export default function DashboardLayout({
       { name: "Dashboard", href: "/user/dashboard", icon: LayoutList },
       { name: "Select Task", href: "/user/dashboard/tasks", icon: ListChecks },
       { name: "Resume History", href: "/user/dashboard/history", icon: History },
+      { name: "Transactions", href: "/user/dashboard/transactions", icon: ReceiptText },
       { name: "Buy Credits", href: "/user/dashboard/credits", icon: CircleDollarSign },
       { name: "Settings", href: "/user/dashboard/settings", icon: Gauge },
     ],

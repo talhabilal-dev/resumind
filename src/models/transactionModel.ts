@@ -1,5 +1,5 @@
 
-import { Schema, model, Document, Types } from "mongoose"
+import { Schema, model, models, Document, Model, Types } from "mongoose"
 
 export interface ICreditTransaction extends Document {
     userId: Types.ObjectId
@@ -29,7 +29,7 @@ const creditTransactionSchema = new Schema<ICreditTransaction>(
     { timestamps: true }
 )
 
-export const CreditTransactionModel = model<ICreditTransaction>(
-    "CreditTransaction",
-    creditTransactionSchema
-)
+export const CreditTransactionModel: Model<ICreditTransaction> =
+    models.CreditTransaction
+        ? (models.CreditTransaction as Model<ICreditTransaction>)
+        : model<ICreditTransaction>("CreditTransaction", creditTransactionSchema)

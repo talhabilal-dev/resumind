@@ -107,8 +107,29 @@ const AnalyzePage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      if (!formData.resumeText.trim()) {
-        throw new Error("Please paste resume text to run AI analysis.");
+      let effectiveResumeText = formData.resumeText.trim();
+
+      if (!effectiveResumeText && formData.resumeFile) {
+        const extractionFormData = new FormData();
+        extractionFormData.append("resumeFile", formData.resumeFile);
+
+        const extractionResponse = await fetch("/api/users/resume/extract-text", {
+          method: "POST",
+          body: extractionFormData,
+        });
+        const extractionPayload = await extractionResponse.json();
+
+        if (!extractionResponse.ok || !extractionPayload?.resumeText) {
+          throw new Error(
+            extractionPayload?.error || "Failed to extract text from uploaded resume file."
+          );
+        }
+
+        effectiveResumeText = String(extractionPayload.resumeText).trim();
+      }
+
+      if (!effectiveResumeText) {
+        throw new Error("Please upload a resume file or paste resume text to run AI analysis.");
       }
 
       const response = await fetch("/api/users/resume/analyze", {
@@ -120,7 +141,7 @@ const AnalyzePage: React.FC = () => {
           task: selectedTask,
           jobTitle: formData.jobTitle,
           jobDescription: formData.jobDescription,
-          resumeText: formData.resumeText,
+          resumeText: effectiveResumeText,
           strictMode: true,
         }),
       });
