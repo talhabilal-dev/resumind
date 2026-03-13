@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get("resumeFile");
 
+    console.log("this is file", file)
+
     if (!(file instanceof File)) {
       return NextResponse.json(
         { error: "Missing resumeFile in form-data.", success: false },

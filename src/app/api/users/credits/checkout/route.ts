@@ -77,8 +77,8 @@ export async function POST(req: NextRequest) {
         credits: String(pack.credits),
         amountCents: String(pack.amountCents),
       },
-      success_url: `${origin}/user/dashboard/credits?success=1&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/user/dashboard/credits?canceled=1`,
+      success_url: `${origin}/user/dashboard/credits/verify?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/user/dashboard/credits/verify?canceled=1&session_id={CHECKOUT_SESSION_ID}`,
     });
 
     await PaymentModel.create({

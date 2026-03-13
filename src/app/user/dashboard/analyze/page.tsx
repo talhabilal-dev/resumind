@@ -147,6 +147,8 @@ const AnalyzePage: React.FC = () => {
       });
 
       const payload = await response.json();
+
+      
       if (!response.ok || !payload?.data) {
         throw new Error(payload?.error || "Failed to analyze resume.");
       }

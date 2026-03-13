@@ -85,6 +85,17 @@ const CreditsPage: React.FC = () => {
   useEffect(() => {
     fetchCredits();
 
+    const paymentStatus = searchParams.get("payment");
+    if (paymentStatus === "failed") {
+      toast.error("Payment failed or was canceled.");
+      return;
+    }
+
+    if (paymentStatus === "pending") {
+      toast.info("Payment is still processing. Please check again shortly.");
+      return;
+    }
+
     if (searchParams.get("success") === "1") {
       toast.success("Payment successful. Credits updated.");
       return;
@@ -151,7 +162,7 @@ const CreditsPage: React.FC = () => {
         <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-foreground">Credit Packs</h2>
           <p className="mt-1 text-sm text-foreground/65">
-            Stripe payment buttons below are UI placeholders for now.
+            Buy credits securely with Stripe checkout.
           </p>
 
           <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
