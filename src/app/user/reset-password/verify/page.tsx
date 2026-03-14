@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowRight, Brain, CheckCircle2, Eye, EyeOff, Lock } from "lucide-react";
@@ -8,7 +8,7 @@ import { AlertCircle, ArrowRight, Brain, CheckCircle2, Eye, EyeOff, Lock } from 
 import { Button } from "@/components/ui/button";
 import { resetPasswordSchema } from "@/schemas/userSchema";
 
-export default function VerifyResetPasswordPage() {
+function VerifyResetPasswordPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -236,5 +236,13 @@ export default function VerifyResetPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyResetPasswordPage() {
+  return (
+    <Suspense fallback={<main className="p-4 text-sm text-foreground/70 sm:p-6">Loading reset form...</main>}>
+      <VerifyResetPasswordPageContent />
+    </Suspense>
   );
 }

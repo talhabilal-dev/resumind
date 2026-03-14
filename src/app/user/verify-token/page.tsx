@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 
 import { VerificationState } from "@/types";
 
-export default function VerifyTokenPage() {
+function VerifyTokenPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [verification, setVerification] = useState<VerificationState>({
@@ -146,5 +146,13 @@ export default function VerifyTokenPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyTokenPage() {
+  return (
+    <Suspense fallback={<main className="p-4 text-sm text-foreground/70 sm:p-6">Loading token verification...</main>}>
+      <VerifyTokenPageContent />
+    </Suspense>
   );
 }

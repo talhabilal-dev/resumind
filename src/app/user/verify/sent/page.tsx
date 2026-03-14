@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, Brain, CheckCircle2, Mail, RefreshCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-export default function VerifySentPage() {
+function VerifySentPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isResending, setIsResending] = useState(false);
@@ -127,5 +127,13 @@ export default function VerifySentPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifySentPage() {
+  return (
+    <Suspense fallback={<main className="p-4 text-sm text-foreground/70 sm:p-6">Loading verification details...</main>}>
+      <VerifySentPageContent />
+    </Suspense>
   );
 }

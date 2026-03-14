@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const VerifyCreditCheckoutPage = () => {
+const VerifyCreditCheckoutPageContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -92,6 +92,14 @@ const VerifyCreditCheckoutPage = () => {
         </p>
       </div>
     </main>
+  );
+};
+
+const VerifyCreditCheckoutPage = () => {
+  return (
+    <Suspense fallback={<main className="p-4 text-sm text-foreground/70 sm:p-6">Loading payment verification...</main>}>
+      <VerifyCreditCheckoutPageContent />
+    </Suspense>
   );
 };
 

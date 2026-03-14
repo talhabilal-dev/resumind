@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { BadgeDollarSign, Check, CreditCard, Sparkles } from "lucide-react";
@@ -66,7 +67,7 @@ const formatUsd = (value: number) =>
     minimumFractionDigits: 2,
   }).format(value);
 
-const CreditsPage: React.FC = () => {
+const CreditsPageContent: React.FC = () => {
   const searchParams = useSearchParams();
   const [isCheckingOutPack, setIsCheckingOutPack] = useState<CreditPackId | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
@@ -294,6 +295,14 @@ const CreditsPage: React.FC = () => {
         </section>
       </main>
     </>
+  );
+};
+
+const CreditsPage: React.FC = () => {
+  return (
+    <Suspense fallback={<main className="p-4 text-sm text-foreground/70 sm:p-6">Loading credits page...</main>}>
+      <CreditsPageContent />
+    </Suspense>
   );
 };
 
