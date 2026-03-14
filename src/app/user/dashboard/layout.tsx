@@ -12,6 +12,7 @@ import {
   LogOut,
   ListChecks,
   ReceiptText,
+  ScanSearch,
 } from "lucide-react";
 
 import {
@@ -52,6 +53,8 @@ export default function DashboardLayout({
       { name: "Dashboard", href: "/user/dashboard", icon: LayoutList },
       { name: "Select Task", href: "/user/dashboard/tasks", icon: ListChecks },
       { name: "PDF Analysis", href: "/user/dashboard/pdf-analysis", icon: FileSearch },
+      // ── New: JD-matched CV analysis ──────────────────────────────────────
+      { name: "CV + JD Analysis", href: "/user/dashboard/jd-analysis", icon: ScanSearch },
       { name: "Resume History", href: "/user/dashboard/history", icon: History },
       { name: "Transactions", href: "/user/dashboard/transactions", icon: ReceiptText },
       { name: "Buy Credits", href: "/user/dashboard/credits", icon: CircleDollarSign },
