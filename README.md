@@ -44,56 +44,66 @@ Resumind is a full-stack platform for resume analysis, job matching, and CV impr
 
 ---
 
-
 ## Screenshots & Explanations
 
 ### Home Dashboard
+
 **Main landing page after login.**
 Shows a summary of user credits, recent analyses, and quick access to core features. The sidebar provides navigation to dashboard sections.
 ![Dashboard](https://res.cloudinary.com/dvdktrhsz/image/upload/v1773488555/Screenshot_2026-03-14_at_16-42-22_Resumind_-_An_Ai-Powered_Resume_Builder_and_Analysis_Tool_racm0w.png)
 
 ### Authentication Pages
+
 #### Sign In
+
 **User login form.**
 Allows users to authenticate with email and password, including error handling and password reset links.
 ![Sign In](https://res.cloudinary.com/dvdktrhsz/image/upload/v1773488483/Screenshot_2026-03-14_at_16-35-59_Resumind_-_An_Ai-Powered_Resume_Builder_and_Analysis_Tool_fc5jfa.png)
 
 #### Sign Up
+
 **User registration form.**
 Enables new users to create an account, with validation and email verification flow.
 ![Sign Up](https://res.cloudinary.com/dvdktrhsz/image/upload/v1773488483/Screenshot_2026-03-14_at_16-36-11_Resumind_-_An_Ai-Powered_Resume_Builder_and_Analysis_Tool_vdzg54.png)
 
 ### Dashboard Overview
+
 **User dashboard with navigation sidebar.**
 Displays credit balance, quick links to analysis, transaction history, and profile settings. Responsive layout for desktop and mobile.
 ![Dashboard](https://res.cloudinary.com/dvdktrhsz/image/upload/v1773488935/Screenshot_2026-03-14_at_16-48-44_Resumind_-_An_Ai-Powered_Resume_Builder_and_Analysis_Tool_trmq6f.png)
 
 ### Transaction History
+
 **List of all credit transactions.**
 Shows purchases, deductions, and refunds. Users can filter and review their payment history.
 ![Transaction History](https://res.cloudinary.com/dvdktrhsz/image/upload/v1773488484/Screenshot_2026-03-14_at_16-37-21_Resumind_-_An_Ai-Powered_Resume_Builder_and_Analysis_Tool_pgoq47.png)
 
 ### Resume Analysis History
+
 **History of all resume analyses performed.**
 Users can view past analyses, download reports, and revisit recommendations for each resume.
 ![Resume Analysis History](https://res.cloudinary.com/dvdktrhsz/image/upload/v1773488482/Screenshot_2026-03-14_at_16-37-14_Resumind_-_An_Ai-Powered_Resume_Builder_and_Analysis_Tool_vxe8ug.png)
 
 ### Credits Page
+
 **Credit wallet and purchase options.**
 Displays current credit balance, allows users to buy more credits via Stripe, and shows credit usage history.
 ![Credits](https://res.cloudinary.com/dvdktrhsz/image/upload/v1773488483/Screenshot_2026-03-14_at_16-37-28_Resumind_-_An_Ai-Powered_Resume_Builder_and_Analysis_Tool_owj1si.png)
 
 ### CV + Job Description Analysis
+
 **AI-powered CV and job description comparison.**
 Users upload their CV and a job description to receive ATS scoring, recommendations, and match analysis.
 ![CV JD Analysis](https://res.cloudinary.com/dvdktrhsz/image/upload/v1773488482/Screenshot_2026-03-14_at_16-37-06_Resumind_-_An_Ai-Powered_Resume_Builder_and_Analysis_Tool_ssoady.png)
 
 ### Profile Settings
+
 **User profile management.**
 Edit personal information, change password, and manage notification preferences.
 ![Profile Settings](https://res.cloudinary.com/dvdktrhsz/image/upload/v1773488483/Screenshot_2026-03-14_at_16-37-42_Resumind_-_An_Ai-Powered_Resume_Builder_and_Analysis_Tool_r68gqo.png)
 
 ### Analysis Detail Page
+
 **Detailed view of a single resume analysis.**
 Shows the full report, recommendations, ATS score, and download options for PDF export.
 ![Analysis Detail](https://res.cloudinary.com/dvdktrhsz/image/upload/v1773488483/Screenshot_2026-03-14_at_16-37-58_Resumind_-_An_Ai-Powered_Resume_Builder_and_Analysis_Tool_ni50bl.png)
@@ -180,14 +190,19 @@ DOMAIN=http://localhost:3000
 ## Getting Started
 
 1. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
+
 2. **Run development server:**
+
    ```bash
    pnpm dev
    ```
+
 3. **Open in browser:**
+
    ```text
    http://localhost:3000
    ```
