@@ -41,7 +41,8 @@ function toCreditsUsed(task: HistoryTask): number {
     return JD_ANALYSIS_CREDIT_COST;
   }
 
-  return RESUME_TASK_CREDIT_COST[task];
+  const mappedCredits = RESUME_TASK_CREDIT_COST[task as ResumeAgentTask];
+  return Number.isFinite(mappedCredits) ? mappedCredits : 0;
 }
 
 export async function GET(req: NextRequest) {
@@ -89,13 +90,14 @@ export async function GET(req: NextRequest) {
     const resumeHistory = resumeRecords.map((item: any) => {
       const task = (item?.parsedData?.task || null) as HistoryTask;
       const jobTitle = item?.parsedData?.jobTitle || item?.title || "Untitled";
+      const creditsUsed = toCreditsUsed(task);
 
       return {
         id: `resume:${String(item._id)}`,
         createdAt: item.createdAt,
         jobTitle,
         workflow: toWorkflowLabel(task),
-        creditsUsed: toCreditsUsed(task),
+        creditsUsed: Number.isFinite(creditsUsed) ? creditsUsed : 0,
         score: typeof item.atsScore === "number" ? item.atsScore : null,
         status: "completed",
       };
@@ -107,8 +109,8 @@ export async function GET(req: NextRequest) {
       jobTitle: item?.jobTitle || "JD Analysis",
       workflow: toWorkflowLabel("jd_cv_analysis"),
       creditsUsed:
-        typeof item?.creditsCharged === "number"
-          ? item.creditsCharged
+        Number.isFinite(Number(item?.creditsCharged))
+          ? Number(item.creditsCharged)
           : toCreditsUsed("jd_cv_analysis"),
       score:
         typeof item?.analysisResult?.ats_score === "number"

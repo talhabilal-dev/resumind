@@ -39,10 +39,19 @@ export async function GET(req: NextRequest) {
       .limit(limit)
       .lean();
 
+    const normalizedTransactions = transactions.map((transaction: any) => {
+      const parsedAmount = Number(transaction?.amount);
+
+      return {
+        ...transaction,
+        amount: Number.isFinite(parsedAmount) ? parsedAmount : 0,
+      };
+    });
+
     return NextResponse.json(
       {
         success: true,
-        transactions,
+        transactions: normalizedTransactions,
         pagination: {
           page,
           limit,

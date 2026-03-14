@@ -20,7 +20,7 @@ type ResumeHistoryItem = {
   createdAt: string;
   jobTitle: string;
   workflow: string;
-  creditsUsed: number;
+  creditsUsed: number | string | null;
   score: number | null;
   status: ResumeHistoryStatus;
 };
@@ -118,7 +118,14 @@ const ResumeHistoryPage: React.FC = () => {
     };
   }, [currentPage]);
 
-  const totalCreditsUsed = historyData.reduce((acc, item) => acc + item.creditsUsed, 0);
+  const totalCreditsUsed = historyData.reduce((acc, item) => {
+    const parsedCredits =
+      typeof item.creditsUsed === "number"
+        ? item.creditsUsed
+        : Number(item.creditsUsed);
+
+    return acc + (Number.isFinite(parsedCredits) ? parsedCredits : 0);
+  }, 0);
   const completedCount = historyData.filter((item) => item.status === "completed").length;
 
   return (

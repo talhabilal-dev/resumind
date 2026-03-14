@@ -28,7 +28,7 @@ type HistoryItem = {
 
 type TransactionItem = {
   _id: string;
-  amount: number;
+  amount: number | string | null;
   type: "purchase" | "usage" | "refund";
   description: string;
   createdAt: string;
@@ -109,9 +109,16 @@ const Page: React.FC = () => {
     return Math.round(total / validScores.length);
   })();
 
-  const spentCredits = transactions
-    .filter((item) => item.type === "usage")
-    .reduce((acc, item) => acc + item.amount, 0);
+  const spentCredits = transactions.reduce((acc, item) => {
+    if (item.type !== "usage") {
+      return acc;
+    }
+
+    const parsedAmount =
+      typeof item.amount === "number" ? item.amount : Number(item.amount);
+
+    return acc + (Number.isFinite(parsedAmount) ? parsedAmount : 0);
+  }, 0);
 
   return (
     <>
