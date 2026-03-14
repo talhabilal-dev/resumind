@@ -113,7 +113,7 @@ export default function Home() {
             <span className="text-sm text-foreground/80">Powered by Advanced AI Technology</span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 text-balance">
+          <h1 className="text-5xl md:text-7xl font-bold text-balance">
             <span className="text-foreground">Your Resume,</span>{' '}
             <span className="gradient-text">Supercharged</span>
           </h1>
@@ -166,7 +166,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="relative py-20 px-4 sm:px-6 lg:px-8">
+      <section id="features" className="relative py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
@@ -250,7 +250,7 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="relative py-20 px-4 sm:px-6 lg:px-8 border-t border-purple-500/10">
+      <section id="pricing" className="relative py-12 px-4 sm:px-6 lg:px-8 border-t border-purple-500/10">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
@@ -259,7 +259,7 @@ export default function Home() {
             <p className="text-lg text-foreground/60">Choose the credits that work for you</p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto mb-12">
+          <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
             {/* Credit Package */}
             <div className="glow-card rounded-lg p-8 group hover:bg-white/10 transition duration-300">
               <div className="mb-6">
@@ -269,7 +269,7 @@ export default function Home() {
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0" />
-                  <span className="text-foreground/80">5 Resume Analyses</span>
+                  <span className="text-foreground/80">1 Resume Analyses</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0" />
@@ -291,7 +291,7 @@ export default function Home() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-foreground/70">1 Resume Analysis</span>
-                  <span className="font-semibold">3 Credits</span>
+                  <span className="font-semibold">5 Credits</span>
                 </div>
                 <div className="border-t border-purple-500/10 pt-4">
                   <div className="flex items-center justify-between">
@@ -305,14 +305,14 @@ export default function Home() {
                     <span className="text-foreground/70">You can analyze</span>
                     <span className="font-bold gradient-text">1 Resume</span>
                   </div>
-                  <p className="text-xs text-foreground/60">Plus 2 credits remaining for next time</p>
+              
                 </div>
               </div>
             </div>
           </div>
 
           {/* Bulk Pricing Info */}
-          <div className="max-w-2xl mx-auto bg-white/5 border border-purple-500/20 rounded-lg p-8 text-center">
+          {/* <div className="max-w-2xl mx-auto bg-white/5 border border-purple-500/20 rounded-lg p-8 text-center">
             <p className="text-foreground/80 mb-3">
               <span className="font-semibold">Need more credits?</span> Contact us for bulk pricing and discounts
             </p>
@@ -323,12 +323,12 @@ export default function Home() {
             >
               Get Bulk Pricing
             </Button>
-          </div>
+          </div> */}
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8">
+      <section className="relative py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="glow-card rounded-2xl p-12 md:p-16 text-center">
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
@@ -390,7 +390,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-purple-500/10 pt-8 text-center text-sm text-foreground/60">
-            <p>&copy; 2024 Resumind. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Resumind. All rights reserved.</p>
           </div>
         </div>
       </footer>

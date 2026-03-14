@@ -26,31 +26,33 @@ type CreditPack = {
   highlighted?: boolean;
 };
 
+// Credit usage and feature costs should match backend deduction logic.
+// If backend changes, update here!
 const FEATURE_COSTS: CreditFeature[] = [
   {
     name: "Full Resume Analysis",
     credits: 5,
-    proposition: "Parsing, ATS score, and suggestions.",
+    proposition: "Detailed parsing, ATS score, actionable suggestions.",
   },
   {
     name: "Job Description Match",
     credits: 3,
-    proposition: "Specific alignment analysis.",
+    proposition: "Alignment analysis for job fit.",
   },
   {
     name: "Cover Letter Generator",
     credits: 4,
-    proposition: "High-value, time-saving document.",
+    proposition: "AI-generated cover letter tailored to your resume and job.",
   },
   {
     name: "Bullet Point Optimization",
     credits: 1,
-    proposition: "Small, granular improvements.",
+    proposition: "Improve individual resume bullet points for impact.",
   },
   {
     name: "Full Resume Rewrite",
     credits: 8,
-    proposition: "Heavy token usage; high manual effort saved.",
+    proposition: "Complete rewrite for best practices and ATS optimization.",
   },
 ];
 
@@ -178,7 +180,7 @@ const CreditsPageContent: React.FC = () => {
             <p className="pb-1 text-xs text-foreground/60">
               {credits === null
                 ? "Loading balance..."
-                : `~$${(credits * 0.1).toFixed(2)} value at 1 credit = $0.10`}
+                : `Estimated value: $${(credits * 0.10).toFixed(2)} (1 credit = $0.10)`}
             </p>
           </div>
         </section>
@@ -247,10 +249,9 @@ const CreditsPageContent: React.FC = () => {
         <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Credit Economics</h2>
+              <h2 className="text-lg font-semibold text-foreground">How Credits Work</h2>
               <p className="mt-1 text-sm text-foreground/70">
-                1 Credit ~= $0.10. This pricing keeps strong margin while typical AI calls cost
-                less than $0.03.
+                Each feature below deducts credits from your balance when used. 1 credit = $0.10. Credits are non-refundable and valid for all resume tools.<br />Typical AI actions cost less than $0.03, so you get strong value per credit.
               </p>
             </div>
             <span className="inline-flex items-center rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-200">
@@ -263,7 +264,7 @@ const CreditsPageContent: React.FC = () => {
         <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-foreground">Feature Credit Costs</h2>
           <p className="mt-1 text-sm text-foreground/65">
-            Transparent per-feature pricing so users can estimate spend before running actions.
+            See how many credits each action uses. Your balance is updated instantly after each feature is run.
           </p>
 
           <div className="mt-4 overflow-x-auto">
