@@ -6,6 +6,14 @@ import { toast } from "sonner"
 
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog"
+import { Spinner } from "@/components/ui/spinner"
 
 type Tip = {
   type: "good" | "improve"
@@ -232,6 +240,32 @@ export default function PdfAnalysisPage() {
 
   return (
     <>
+      <Dialog open={isSubmitting}>
+        <DialogContent
+          showCloseButton={false}
+          className="border-rose-500/30 bg-background/95"
+          onEscapeKeyDown={(event: { preventDefault: () => void }) => event.preventDefault()}
+          onPointerDownOutside={(event: { preventDefault: () => void }) => event.preventDefault()}
+          onInteractOutside={(event: { preventDefault: () => void }) => event.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Spinner className="size-4 text-rose-300" />
+              Analyzing Your Resume
+            </DialogTitle>
+            <DialogDescription className="text-foreground/75">
+              Please wait while AI reviews your CV and prepares detailed feedback. Do not close or navigate away.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 rounded-lg border border-rose-500/20 bg-black/20 p-3 text-sm text-foreground/80">
+            <p>1. Extracting text from uploaded file</p>
+            <p>2. Running ATS and category analysis</p>
+            <p>3. Preparing structured recommendations</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <header className="sticky top-0 z-30 border-b border-rose-500/10 bg-background/70 px-4 py-4 backdrop-blur-md sm:px-6">
         <div className="flex items-center gap-3">
           <SidebarTrigger className="border border-rose-500/20 bg-white/5 hover:bg-white/10" />
