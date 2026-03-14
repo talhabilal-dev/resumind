@@ -19,7 +19,7 @@ import {
   XCircle,
   Zap,
 } from "lucide-react"
-import { toast } from "sonner"
+import { useToast } from "@/hooks/use-toast"
 
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
@@ -184,6 +184,8 @@ export default function JdAnalysisPage() {
   // ── Results ───────────────────────────────────────────────────────────────
   const [result, setResult] = useState<AnalysisState | null>(null)
 
+  const { toast } = useToast();
+
   // ── Validation ────────────────────────────────────────────────────────────
   function validate(): boolean {
     const next: Record<string, string> = {}
@@ -228,12 +230,24 @@ export default function JdAnalysisPage() {
       })
 
       if (data.cached) {
-        toast.info("Returned cached analysis — no credits charged.")
+        toast({
+          title: "Info",
+          description: "Returned cached analysis — no credits charged.",
+          variant: "default"
+        })
       } else {
-        toast.success(`Analysis complete. ${data.meta?.creditsCharged ?? JD_ANALYSIS_CREDIT_COST} credits used.`)
+        toast({
+          title: "Success",
+          description: `Analysis complete. ${data.meta?.creditsCharged ?? JD_ANALYSIS_CREDIT_COST} credits used.`,
+          variant: "default"
+        })
       }
     } catch (err: any) {
-      toast.error(err.message || "Analysis failed.")
+      toast({
+        title: "Error",
+        description: err.message || "Analysis failed.",
+        variant: "destructive"
+      })
     } finally {
       setIsAnalysing(false)
     }
@@ -258,11 +272,17 @@ export default function JdAnalysisPage() {
 
       const remaining = res.headers.get("X-Credits-Remaining")
       if (remaining) {
-        toast.success(
-          `Improved CV generated. Credits remaining: ${remaining}.`
-        )
+        toast({
+          title: "Success",
+          description: `Improved CV generated. Credits remaining: ${remaining}.`,
+          variant: "default"
+        })
       } else {
-        toast.success("Improved CV generated and downloading.")
+        toast({
+          title: "Success",
+          description: "Improved CV generated and downloading.",
+          variant: "default"
+        })
       }
 
       const blob = await res.blob()
@@ -278,7 +298,11 @@ export default function JdAnalysisPage() {
       link.remove()
       URL.revokeObjectURL(url)
     } catch (err: any) {
-      toast.error(err.message || "Failed to generate improved CV.")
+      toast({
+        title: "Error",
+        description: err.message || "Failed to generate improved CV.",
+        variant: "destructive"
+      })
     } finally {
       setIsGenerating(false)
     }
@@ -594,7 +618,7 @@ export default function JdAnalysisPage() {
             </SectionCard>
 
             {/* Generate improved CV CTA */}
-            <section className="rounded-xl border border-rose-400/30 bg-rose-500/8 p-5 sm:p-6">
+            {/* <section className="rounded-xl border border-rose-400/30 bg-rose-500/8 p-5 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
@@ -628,7 +652,7 @@ export default function JdAnalysisPage() {
                   )}
                 </Button>
               </div>
-            </section>
+            </section> */}
 
             {/* Meta footer */}
             <section className="rounded-xl border border-rose-500/20 bg-black/20 p-4 text-xs text-foreground/65">

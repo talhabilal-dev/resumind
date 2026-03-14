@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import React from "react";
 import { ArrowLeft, CalendarClock, Download, FileText, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
@@ -71,6 +71,8 @@ function isJdAnalysisOutput(value: any): value is JdAnalysisOutput {
   );
 }
 
+
+
 type FeedbackTip = {
   type: "good" | "improve";
   tip: string;
@@ -108,7 +110,9 @@ function FeedbackCategoryCard({
 }: {
   title: string;
   data: FeedbackCategory;
-}) {
+}
+
+) {
   return (
     <article className="rounded-xl border border-rose-500/20 bg-black/20 p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -217,9 +221,15 @@ export default function ResumeHistoryDetailPage() {
   const pdfOutput = isPdfFeedbackOutput(output) ? output : null;
   const jdOutput = isJdAnalysisOutput(output) ? output : null;
 
+  const { toast } = useToast();
+
   const handleGenerateImprovedCv = async () => {
     if (!details?.analysisId) {
-      toast.error("Analysis ID is missing for this record.");
+      toast({
+        title: "Error",
+        description: "Analysis ID is missing for this record.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -254,12 +264,24 @@ export default function ResumeHistoryDetailPage() {
 
       const remaining = res.headers.get("X-Credits-Remaining");
       if (remaining) {
-        toast.success(`Improved CV generated. Credits remaining: ${remaining}.`);
+        toast({
+          title: "Success",
+          description: `Improved CV generated. Credits remaining: ${remaining}.`,
+          variant: "default"
+        });
       } else {
-        toast.success("Improved CV generated and downloading.");
+        toast({
+          title: "Success",
+          description: "Improved CV generated and downloading.",
+          variant: "default"
+        });
       }
     } catch (generationError: any) {
-      toast.error(generationError?.message || "Failed to generate improved CV.");
+      toast({
+        title: "Error",
+        description: generationError?.message || "Failed to generate improved CV.",
+        variant: "destructive"
+      });
     } finally {
       setIsGeneratingCv(false);
     }
@@ -350,7 +372,7 @@ export default function ResumeHistoryDetailPage() {
                   </p>
                 </article>
 
-                <article className="glow-card rounded-xl bg-white/5 p-4">
+                {/* <article className="glow-card rounded-xl bg-white/5 p-4">
                   <p className="text-sm text-foreground/70">Improved CV</p>
                   <button
                     type="button"
@@ -361,7 +383,7 @@ export default function ResumeHistoryDetailPage() {
                     <Download className="h-4 w-4" />
                     {isGeneratingCv ? "Generating..." : "Generate Improved CV"}
                   </button>
-                </article>
+                </article> */}
               </section>
             ) : null}
 

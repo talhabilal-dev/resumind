@@ -56,7 +56,7 @@ export const sendEmail = async (
     }
     return data;
   } catch (error: any) {
-    console.log(error);
+    console.error("Error in sendEmail:", error?.message || error);
     return null;
   }
 };

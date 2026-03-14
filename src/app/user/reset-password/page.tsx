@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, ArrowRight, Brain, CheckCircle2, Mail, RefreshCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,8 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+    const { toast } = useToast();
 
   const validateEmail = (value: string): string | null => {
     const parsed = forgotPasswordEmailSchema.safeParse({ email: value.trim() });
@@ -29,6 +32,11 @@ export default function ResetPasswordPage() {
     const validationError = validateEmail(email);
     if (validationError) {
       setError(validationError);
+      toast({
+        title: "Error",
+        description: validationError,
+        variant: "destructive"
+      });
       return;
     }
 
@@ -48,9 +56,19 @@ export default function ResetPasswordPage() {
       }
 
       setIsSuccess(true);
+      toast({
+        title: "Success",
+        description: "Reset link sent. Please check your email.",
+        variant: "default"
+      });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong.";
       setError(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }

@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     if (!userId) {
       return NextResponse.json(
-        { error: "Unauthorized. Please sign in." },
+        { success: false, error: "Unauthorized. Please sign in." },
         { status: 401 }
       )
     }
@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         {
+          success: false,
           error: "Invalid report payload.",
           details: parsed.error.flatten()
         },
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("Error generating PDF analysis report:", error?.message || error)
     return NextResponse.json(
-      { error: "Failed to generate analysis report." },
+      { success: false, error: "Failed to generate analysis report." },
       { status: 500 }
     )
   }

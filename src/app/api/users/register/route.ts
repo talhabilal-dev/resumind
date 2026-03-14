@@ -50,19 +50,19 @@ export async function POST(req: NextRequest) {
     await newUser.save();
 
     // Send verification email
-    // const emailResponse = await sendEmail(
-    //   "VERIFY",
-    //   "Verify your email",
-    //   email,
-    //   newUser._id.toString()
-    // );
+    const emailResponse = await sendEmail(
+      "VERIFY",
+      "Verify your email",
+      email,
+      newUser._id.toString()
+    );
 
-    // if (!emailResponse) {
-    //   return NextResponse.json(
-    //     { error: "Failed to send verification email.", success: false },
-    //     { status: 500 }
-    //   );
-    // }
+    if (!emailResponse) {
+      return NextResponse.json(
+        { error: "Failed to send verification email.", success: false },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       { message: "User registered successfully.", success: true },

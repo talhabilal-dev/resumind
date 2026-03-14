@@ -4,7 +4,8 @@ import React from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { BadgeDollarSign, Check, CreditCard, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+
+import { useToast } from "@/hooks/use-toast";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,8 @@ const CreditsPage: React.FC = () => {
   const [isCheckingOutPack, setIsCheckingOutPack] = useState<CreditPackId | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
 
+  const { toast } = useToast();
+
   const fetchCredits = async () => {
     try {
       const response = await fetch("/api/users/profile");
@@ -87,22 +90,38 @@ const CreditsPage: React.FC = () => {
 
     const paymentStatus = searchParams.get("payment");
     if (paymentStatus === "failed") {
-      toast.error("Payment failed or was canceled.");
+      toast({
+        title: "Error",
+        description: "Payment failed or was canceled.",
+        variant: "destructive"
+      });
       return;
     }
 
     if (paymentStatus === "pending") {
-      toast.info("Payment is still processing. Please check again shortly.");
+      toast({
+        title: "Info",
+        description: "Payment is still processing. Please check again shortly.",
+        variant: "default"
+      });
       return;
     }
 
     if (searchParams.get("success") === "1") {
-      toast.success("Payment successful. Credits updated.");
+      toast({
+        title: "Success",
+        description: "Payment successful. Credits updated.",
+        variant: "default"
+      });
       return;
     }
 
     if (searchParams.get("canceled") === "1") {
-      toast.info("Checkout canceled.");
+      toast({
+        title: "Info",
+        description: "Checkout canceled.",
+        variant: "default"
+      });
     }
   }, [searchParams]);
 
@@ -125,7 +144,11 @@ const CreditsPage: React.FC = () => {
       window.location.href = payload.checkoutUrl;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Stripe checkout failed.";
-      toast.error(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive"
+      });
     } finally {
       setIsCheckingOutPack(null);
     }

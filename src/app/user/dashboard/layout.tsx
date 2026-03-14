@@ -9,10 +9,10 @@ import {
   History,
   LayoutList,
   LogOut,
-  ListChecks,
   ReceiptText,
   ScanSearch,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 import {
   Sidebar,
@@ -46,6 +46,8 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<DashboardUser | null>(null);
+
+  const { toast } = useToast();
 
   const menuItems = useMemo(
     () => [
@@ -86,6 +88,11 @@ export default function DashboardLayout({
   const handleLogout = async () => {
     try {
       await fetch("/api/users/logout", { method: "POST" });
+      toast({
+        title: "Logged Out",
+        description: "You have been logged out successfully.",
+        variant: "default"
+      });
     } finally {
       router.push("/user/login");
     }

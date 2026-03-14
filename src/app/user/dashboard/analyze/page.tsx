@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Sparkles, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,8 @@ const AnalyzePage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTask, setSelectedTask] = useState<ResumeAgentTask>("full_resume_analysis");
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
+
+  const { toast } = useToast();
 
   useEffect(() => {
     setSelectedTask("full_resume_analysis");
@@ -139,18 +141,28 @@ const AnalyzePage: React.FC = () => {
 
       const payload = await response.json();
 
-      
+
       if (!response.ok || !payload?.data) {
         throw new Error(payload?.error || "Failed to analyze resume.");
       }
 
       setAnalysis(payload.data as AnalysisResponse);
-      toast.success(
-        `Analysis complete. ${payload.credits?.charged || RESUME_TASK_CREDIT_COST[selectedTask]} credits used.`
-      );
+
+      toast({
+        title: "Error",
+        description: `Analysis complete. ${payload.credits?.charged || RESUME_TASK_CREDIT_COST[selectedTask]} credits used.`,
+        variant: "destructive"
+
+      })
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Analysis failed.";
-      toast.error(message);
+
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive"
+
+      })
     } finally {
       setIsSubmitting(false);
     }

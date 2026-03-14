@@ -21,10 +21,7 @@ export async function connectDB(): Promise<typeof mongoose> {
       .connect(MONGODB_URI, {
         bufferCommands: false,
       })
-      .then((mongoose) => {
-        console.log("✅ Connected to MongoDB");
-        return mongoose;
-      });
+      .then((mongoose) => mongoose);
   }
 
   cached.conn = await cached.promise;

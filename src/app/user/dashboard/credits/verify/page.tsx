@@ -3,11 +3,12 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 const VerifyCreditCheckoutPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -15,7 +16,11 @@ const VerifyCreditCheckoutPage = () => {
       const canceled = searchParams.get("canceled") === "1";
 
       if (!sessionId) {
-        toast.error("Missing checkout session. Please try again.");
+        toast({
+          title: "Error",
+          description: "Missing checkout session. Please try again.",
+          variant: "destructive"
+        });
         router.replace("/user/dashboard/credits?payment=failed");
         return;
       }
@@ -35,23 +40,39 @@ const VerifyCreditCheckoutPage = () => {
         }
 
         if (payload?.status === "completed") {
-          toast.success("Payment verified. Credits added successfully.");
+          toast({
+            title: "Success",
+            description: "Payment verified. Credits added successfully.",
+            variant: "default"
+          });
           router.replace("/user/dashboard");
           return;
         }
 
         if (payload?.status === "failed") {
-          toast.error("Payment failed or was canceled.");
+          toast({
+            title: "Error",
+            description: "Payment failed or was canceled.",
+            variant: "destructive"
+          });
           router.replace("/user/dashboard/credits?payment=failed");
           return;
         }
 
-        toast.info("Payment is still processing. Please refresh in a moment.");
+        toast({
+          title: "Info",
+          description: "Payment is still processing. Please refresh in a moment.",
+          variant: "default"
+        });
         router.replace("/user/dashboard/credits?payment=pending");
       } catch (error: unknown) {
         const message =
           error instanceof Error ? error.message : "Unable to verify payment status.";
-        toast.error(message);
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive"
+        });
         router.replace("/user/dashboard/credits?payment=failed");
       }
     };

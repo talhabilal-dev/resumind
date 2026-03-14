@@ -10,7 +10,7 @@ import {
   Save,
   Trash2,
 } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,8 @@ type SettingsForm = {
 
 const SettingsPage: React.FC = () => {
   const router = useRouter();
+
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState<SettingsForm>({
     firstname: "",
@@ -75,7 +77,11 @@ const SettingsPage: React.FC = () => {
         });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Unable to load profile.";
-        toast.error(message);
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive"
+        });
       } finally {
         setIsLoadingProfile(false);
       }
@@ -93,7 +99,11 @@ const SettingsPage: React.FC = () => {
     });
 
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message || "Please fix form errors.");
+      toast({
+        title: "Error",
+        description: parsed.error.issues[0]?.message || "Please fix form errors.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -112,10 +122,18 @@ const SettingsPage: React.FC = () => {
         throw new Error(data?.error || "Failed to update profile.");
       }
 
-      toast.success("Profile updated successfully.");
+      toast({
+        title: "Success",
+        description: "Profile updated successfully.",
+        variant: "default"
+      });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unable to update profile.";
-      toast.error(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive"
+      });
     } finally {
       setIsSaving(false);
     }
@@ -128,22 +146,38 @@ const SettingsPage: React.FC = () => {
     });
 
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message || "Invalid password form.");
+      toast({
+        title: "Error",
+        description: parsed.error.issues[0]?.message || "Invalid password form.",
+        variant: "destructive"
+      });
       return;
     }
 
     if (!passwordForm.confirmPassword) {
-      toast.error("Please confirm your new password.");
+      toast({
+        title: "Error",
+        description: "Please confirm your new password.",
+        variant: "destructive"
+      });
       return;
     }
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error("New password and confirmation do not match.");
+      toast({
+        title: "Error",
+        description: "New password and confirmation do not match.",
+        variant: "destructive"
+      });
       return;
     }
 
     if (passwordForm.currentPassword === passwordForm.newPassword) {
-      toast.error("New password must be different from current password.");
+      toast({
+        title: "Error",
+        description: "New password must be different from current password.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -162,7 +196,11 @@ const SettingsPage: React.FC = () => {
         throw new Error(data?.error || "Failed to change password.");
       }
 
-      toast.success("Password changed successfully.");
+      toast({
+        title: "Success",
+        description: "Password changed successfully.",
+        variant: "default"
+      });
       setPasswordForm({
         currentPassword: "",
         newPassword: "",
@@ -171,7 +209,11 @@ const SettingsPage: React.FC = () => {
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Unable to change password.";
-      toast.error(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive"
+      });
     } finally {
       setIsChangingPassword(false);
     }
@@ -183,7 +225,11 @@ const SettingsPage: React.FC = () => {
     });
 
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message || "Invalid confirmation.");
+      toast({
+        title: "Error",
+        description: parsed.error.issues[0]?.message || "Invalid confirmation.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -202,11 +248,19 @@ const SettingsPage: React.FC = () => {
         throw new Error(data?.error || "Failed to delete account.");
       }
 
-      toast.success("Account deleted successfully.");
+      toast({
+        title: "Success",
+        description: "Account deleted successfully.",
+        variant: "default"
+      });
       router.push("/user/register");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unable to delete account.";
-      toast.error(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive"
+      });
     } finally {
       setIsDeleting(false);
     }

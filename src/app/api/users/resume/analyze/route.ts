@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
     if (!parsedApi.success) {
       return NextResponse.json(
         {
+          success: false,
           error: "Invalid request body",
           details: parsedApi.error.flatten()
         },
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         {
+          success: false,
           error: "Invalid normalized request body",
           details: parsed.error.flatten()
         },
@@ -131,7 +133,10 @@ export async function POST(req: NextRequest) {
     })
 
     if (!result.success || !result.output) {
-      return NextResponse.json({ error: result.error }, { status: 500 })
+      return NextResponse.json(
+        { success: false, error: result.error || "Resume analysis failed." },
+        { status: 500 }
+      )
     }
 
     const totalTokens = result.tokensUsed ?? 0
@@ -175,7 +180,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("[POST /api/resume/agent] Unexpected error:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     )
   }
@@ -197,7 +202,10 @@ export async function GET(req: NextRequest) {
     const resumeId = searchParams.get("resumeId")
 
     if (!resumeId) {
-      return NextResponse.json({ error: "resumeId is required" }, { status: 400 })
+      return NextResponse.json(
+        { success: false, error: "resumeId is required" },
+        { status: 400 }
+      )
     }
 
     await connectDB()
@@ -208,12 +216,18 @@ export async function GET(req: NextRequest) {
     }).lean()
 
     if (!resume) {
-      return NextResponse.json({ error: "Resume not found" }, { status: 404 })
+      return NextResponse.json(
+        { success: false, error: "Resume not found" },
+        { status: 404 }
+      )
     }
 
     return NextResponse.json({ success: true, resume }, { status: 200 })
   } catch (error) {
     console.error("[GET /api/resume/agent] Unexpected error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    )
   }
 }

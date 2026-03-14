@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, ArrowRight, Brain, Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { signupSchema } from "@/schemas/userSchema";
 
 export default function Register() {
   const router = useRouter();
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState<RegisterFormData>({
     firstname: "",
@@ -86,6 +87,11 @@ export default function Register() {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
+      toast({
+        title: "Error",
+        description: newErrors.general || Object.values(newErrors)[0] || "Please correct the form errors.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -105,12 +111,20 @@ export default function Register() {
       if (!response.ok) {
         const errorMessage = data?.error || "Failed to create account.";
         setErrors({ general: errorMessage });
-        toast.error(errorMessage);
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
         return;
       }
 
       if (data.success) {
-        toast.success("Account created successfully!");
+        toast({
+          title: "Success",
+          description: "Account created successfully!",
+          variant: "default"
+        });
         const registeredEmail = formData.email;
         setFormData({
           firstname: "",
@@ -124,15 +138,17 @@ export default function Register() {
         router.push(`/user/verify/sent?email=${encodeURIComponent(registeredEmail)}`);
       }
     } catch (error: unknown) {
-      console.error("Signup error:", error);
-
       let message = "An unexpected error occurred. Please try again.";
       if (error instanceof Error) {
         message = error.message;
       }
 
       setErrors({ general: message });
-      toast.error(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }

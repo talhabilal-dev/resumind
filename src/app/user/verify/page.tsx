@@ -1,15 +1,21 @@
 "use client";
 import { useState } from "react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 const VerifyEmailPage = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const { toast } = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      toast.error("Please enter your email");
+      toast({
+        title: "Error",
+        description: "Please enter your email",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -29,10 +35,18 @@ const VerifyEmailPage = () => {
 
       if (!res.ok) throw new Error(data.message || "Something went wrong");
 
-      toast.success("Verification link sent! Check your email.");
+      toast({
+        title: "Success",
+        description: "Verification link sent! Check your email.",
+        variant: "default"
+      });
       setEmail("");
     } catch (err: any) {
-      toast.error(err.message || "Failed to send email.");
+      toast({
+        title: "Error",
+        description: err.message || "Failed to send email.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

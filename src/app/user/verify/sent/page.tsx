@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, Brain, CheckCircle2, Mail, RefreshCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ export default function VerifySentPage() {
   const searchParams = useSearchParams();
   const [isResending, setIsResending] = useState(false);
 
+  const { toast } = useToast();
+
   const email = useMemo(() => {
     const value = searchParams.get("email");
     return value ? value.trim() : "";
@@ -20,7 +22,11 @@ export default function VerifySentPage() {
 
   const handleResend = async () => {
     if (!email) {
-      toast.error("Email address is missing. Please register again.");
+      toast({
+        title: "Error",
+        description: "Email address is missing. Please register again.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -39,10 +45,18 @@ export default function VerifySentPage() {
         throw new Error(data?.error || "Failed to resend verification email.");
       }
 
-      toast.success("Verification email resent. Check your inbox.");
+      toast({
+        title: "Success",
+        description: "Verification email resent. Check your inbox.",
+        variant: "default"
+      });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Something went wrong.";
-      toast.error(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive"
+      });
     } finally {
       setIsResending(false);
     }

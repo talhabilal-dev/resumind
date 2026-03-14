@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     if (!userId) {
       return NextResponse.json(
-        { error: "Unauthorized. Please sign in." },
+        { success: false, error: "Unauthorized. Please sign in." },
         { status: 401 }
       )
     }
@@ -53,13 +53,17 @@ export async function POST(req: NextRequest) {
 
     const user = await User.findById(userId)
     if (!user) {
-      return NextResponse.json({ error: "User not found." }, { status: 404 })
+      return NextResponse.json(
+        { success: false, error: "User not found." },
+        { status: 404 }
+      )
     }
 
     const requiredCredits = RESUME_TASK_CREDIT_COST.full_resume_analysis
     if ((user.credits ?? 0) < requiredCredits) {
       return NextResponse.json(
         {
+          success: false,
           error: "Insufficient credits",
           message: `You need ${requiredCredits} credits to generate an improved PDF CV.`,
           credits: user.credits,
@@ -76,19 +80,25 @@ export async function POST(req: NextRequest) {
     const companyName = String(formData.get("companyName") || "").trim()
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 })
+      return NextResponse.json(
+        { success: false, error: "No file provided" },
+        { status: 400 }
+      )
     }
 
     if (file.size <= 0 || file.size > MAX_RESUME_FILE_SIZE) {
       return NextResponse.json(
-        { error: "Resume file must be between 1 byte and 5MB." },
+        { success: false, error: "Resume file must be between 1 byte and 5MB." },
         { status: 400 }
       )
     }
 
     if (!file.name.toLowerCase().endsWith(".pdf")) {
       return NextResponse.json(
-        { error: "Improved CV generation currently supports PDF files only." },
+        {
+          success: false,
+          error: "Improved CV generation currently supports PDF files only."
+        },
         { status: 400 }
       )
     }
@@ -98,7 +108,7 @@ export async function POST(req: NextRequest) {
       feedbackInput = JSON.parse(feedbackRaw)
     } catch {
       return NextResponse.json(
-        { error: "Invalid feedback payload." },
+        { success: false, error: "Invalid feedback payload." },
         { status: 400 }
       )
     }
@@ -107,6 +117,7 @@ export async function POST(req: NextRequest) {
     if (!feedbackParsed.success) {
       return NextResponse.json(
         {
+          success: false,
           error: "Feedback schema validation failed.",
           details: feedbackParsed.error.flatten()
         },
@@ -121,6 +132,7 @@ export async function POST(req: NextRequest) {
     if (!resumeText || resumeText.length < 120) {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Could not extract enough text from this PDF. Please upload a clearer PDF file."
         },
@@ -197,7 +209,7 @@ Output guidance:
   } catch (error: any) {
     console.error("Error generating improved PDF CV:", error?.message || error)
     return NextResponse.json(
-      { error: "Failed to generate improved PDF CV." },
+      { success: false, error: "Failed to generate improved PDF CV." },
       { status: 500 }
     )
   }

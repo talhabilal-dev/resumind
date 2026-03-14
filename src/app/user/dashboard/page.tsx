@@ -128,14 +128,6 @@ const Page: React.FC = () => {
           <div className="flex items-center gap-2">
             <Button
               type="button"
-              variant="outline"
-              className="border-rose-500/30 bg-white/5 text-foreground hover:bg-white/10"
-              onClick={() => router.push("/user/dashboard/pdf-analysis")}
-            >
-              PDF Analysis
-            </Button>
-            <Button
-              type="button"
               className="gradient-accent border-0 text-white"
               onClick={() => router.push("/user/dashboard/jd-analysis")}
             >

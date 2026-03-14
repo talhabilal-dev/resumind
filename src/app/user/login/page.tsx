@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, ArrowRight, Brain, Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { signinSchema } from "@/schemas/userSchema";
 
 export default function Login() {
   const router = useRouter();
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
@@ -80,6 +81,11 @@ export default function Login() {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
+      toast({
+        title: "Error",
+        description: newErrors.general || Object.values(newErrors)[0] || "Please correct the form errors.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -103,12 +109,20 @@ export default function Login() {
       if (!response.ok) {
         const errorMessage = data?.error || "Login failed. Please try again.";
         setErrors({ general: errorMessage });
-        toast.error(errorMessage);
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
         return;
       }
 
       if (data.success) {
-        toast.success("Login successful!");
+        toast({
+          title: "Success",
+          description: "Login successful!",
+          variant: "default"
+        });
         setFormData({
           email: "",
           password: "",
@@ -118,18 +132,24 @@ export default function Login() {
       } else {
         const message = data?.message || "Invalid email or password.";
         setErrors({ general: message });
-        toast.error(message);
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive"
+        });
       }
     } catch (error: unknown) {
-      console.error("Signin error:", error);
-
       let message = "An unexpected error occurred. Please try again later.";
       if (error instanceof Error) {
         message = error.message;
       }
 
       setErrors({ general: message });
-      toast.error(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
