@@ -1,18 +1,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { FileText, Sparkles, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { resumeUploadSchema } from "@/schemas/resumeSchema";
-import {
-  RESUME_TASK_CREDIT_COST,
-  resumeAgentTaskSchema,
-  type ResumeAgentTask,
-} from "@/schemas/resumeAgentSchema";
+
+type ResumeAgentTask = "full_resume_analysis";
+const RESUME_TASK_CREDIT_COST: Record<ResumeAgentTask, number> = {
+  full_resume_analysis: 5,
+};
 
 type ResumeFormData = {
   jobTitle: string;
@@ -50,15 +50,10 @@ type AnalysisResponse = {
 
 const TASK_LABELS: Record<ResumeAgentTask, string> = {
   full_resume_analysis: "Full Resume Analysis",
-  job_description_match: "Job Description Match",
-  cover_letter_generator: "Cover Letter Generator",
-  bullet_point_optimization: "Bullet Point Optimization",
-  full_resume_rewrite: "Full Resume Rewrite",
 };
 
 const AnalyzePage: React.FC = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [formData, setFormData] = useState<ResumeFormData>({
     jobTitle: "",
     jobDescription: "",
@@ -71,12 +66,8 @@ const AnalyzePage: React.FC = () => {
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
 
   useEffect(() => {
-    const urlTask = searchParams.get("task");
-    const parsedTask = resumeAgentTaskSchema.safeParse(urlTask);
-    if (parsedTask.success) {
-      setSelectedTask(parsedTask.data);
-    }
-  }, [searchParams]);
+    setSelectedTask("full_resume_analysis");
+  }, []);
 
   const clearFieldError = (field: keyof ResumeFormData) => {
     if (errors[field]) {

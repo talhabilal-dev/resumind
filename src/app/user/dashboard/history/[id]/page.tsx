@@ -35,6 +35,80 @@ type DetailPayload = {
   rawText: string;
 };
 
+type FeedbackTip = {
+  type: "good" | "improve";
+  tip: string;
+  explanation: string;
+};
+
+type FeedbackCategory = {
+  score: number;
+  tips: FeedbackTip[];
+};
+
+type PdfFeedbackOutput = {
+  overallScore: number;
+  toneAndStyle: FeedbackCategory;
+  content: FeedbackCategory;
+  structure: FeedbackCategory;
+  skills: FeedbackCategory;
+};
+
+function isPdfFeedbackOutput(value: any): value is PdfFeedbackOutput {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      typeof value.overallScore === "number" &&
+      value.toneAndStyle &&
+      value.content &&
+      value.structure &&
+      value.skills
+  );
+}
+
+function FeedbackCategoryCard({
+  title,
+  data,
+}: {
+  title: string;
+  data: FeedbackCategory;
+}) {
+  return (
+    <article className="rounded-xl border border-rose-500/20 bg-black/20 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="font-semibold text-foreground">{title}</h3>
+        <span className="rounded-md border border-rose-500/35 bg-rose-500/15 px-2 py-1 text-xs text-rose-100">
+          {data.score}/100
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        {data.tips.map((tip, index) => (
+          <div
+            key={`${title}-${index}-${tip.tip}`}
+            className="rounded-lg border border-rose-500/15 bg-white/5 p-3"
+          >
+            <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <span
+                className={[
+                  "rounded-full px-2 py-0.5 text-[11px] uppercase",
+                  tip.type === "good"
+                    ? "bg-emerald-500/20 text-emerald-200"
+                    : "bg-amber-500/20 text-amber-200",
+                ].join(" ")}
+              >
+                {tip.type}
+              </span>
+              {tip.tip}
+            </p>
+            <p className="mt-1 text-sm text-foreground/80">{tip.explanation}</p>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
+
 function formatDateTime(value?: string): string {
   if (!value) {
     return "-";
@@ -101,6 +175,8 @@ export default function ResumeHistoryDetailPage() {
 
   const output = details?.parsedData?.output || {};
   const safeguards = details?.parsedData?.safeguards || {};
+  const isPdfAnalysisTask = details?.task === "pdf_resume_analysis";
+  const pdfOutput = isPdfFeedbackOutput(output) ? output : null;
 
   return (
     <>
@@ -188,66 +264,95 @@ export default function ResumeHistoryDetailPage() {
                 <FileText className="h-4 w-4 text-rose-300" />
                 <h2 className="text-lg font-semibold text-foreground">Summary</h2>
               </div>
-              <p className="whitespace-pre-wrap text-sm text-foreground/85">
-                {output?.summary || "No summary available."}
-              </p>
-            </section>
-
-            <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
-              <h2 className="text-lg font-semibold text-foreground">Recommendations</h2>
-              {Array.isArray(output?.recommendations) && output.recommendations.length > 0 ? (
-                <div className="mt-3 space-y-3">
-                  {output.recommendations.map((item: any, index: number) => (
-                    <article key={`${index}-${item?.title || "rec"}`} className="rounded-lg border border-rose-500/15 bg-black/20 p-3">
-                      <p className="font-medium text-foreground">{item?.title || `Recommendation ${index + 1}`}</p>
-                      <p className="mt-1 text-sm text-foreground/80">{item?.rationale || ""}</p>
-                      <p className="mt-1 text-sm text-rose-100">{item?.action || ""}</p>
-                    </article>
-                  ))}
-                </div>
+              {isPdfAnalysisTask && pdfOutput ? (
+                <p className="whitespace-pre-wrap text-sm text-foreground/85">
+                  This report was generated from uploaded resume analysis with AI category scoring and
+                  targeted recommendations.
+                </p>
               ) : (
-                <p className="mt-3 text-sm text-foreground/70">No recommendations available.</p>
+                <p className="whitespace-pre-wrap text-sm text-foreground/85">
+                  {output?.summary || "No summary available."}
+                </p>
               )}
             </section>
 
-            <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <article className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
-                <h2 className="text-lg font-semibold text-foreground">Optimized Bullets</h2>
-                {Array.isArray(output?.optimizedBullets) && output.optimizedBullets.length > 0 ? (
-                  <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-foreground/85">
-                    {output.optimizedBullets.map((bullet: string, idx: number) => (
-                      <li key={`${idx}-${bullet.slice(0, 20)}`}>{bullet}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-3 text-sm text-foreground/70">No optimized bullets available.</p>
-                )}
-              </article>
+            {isPdfAnalysisTask && pdfOutput ? (
+              <>
+                <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
+                  <h2 className="text-lg font-semibold text-foreground">Overall Score</h2>
+                  <p className="mt-2 text-sm text-foreground/80">
+                    {pdfOutput.overallScore}/100
+                  </p>
+                </section>
 
-              <article className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
-                <h2 className="text-lg font-semibold text-foreground">Missing Keywords</h2>
-                {Array.isArray(output?.missingKeywords) && output.missingKeywords.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {output.missingKeywords.map((keyword: string) => (
-                      <span key={keyword} className="rounded-full border border-rose-500/30 bg-rose-500/15 px-2.5 py-1 text-xs text-rose-100">
-                        {keyword}
-                      </span>
+                <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <FeedbackCategoryCard title="Tone & Style" data={pdfOutput.toneAndStyle} />
+                  <FeedbackCategoryCard title="Content" data={pdfOutput.content} />
+                  <FeedbackCategoryCard title="Structure" data={pdfOutput.structure} />
+                  <FeedbackCategoryCard title="Skills" data={pdfOutput.skills} />
+                </section>
+              </>
+            ) : null}
+
+            {!isPdfAnalysisTask ? (
+              <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
+                <h2 className="text-lg font-semibold text-foreground">Recommendations</h2>
+                {Array.isArray(output?.recommendations) && output.recommendations.length > 0 ? (
+                  <div className="mt-3 space-y-3">
+                    {output.recommendations.map((item: any, index: number) => (
+                      <article key={`${index}-${item?.title || "rec"}`} className="rounded-lg border border-rose-500/15 bg-black/20 p-3">
+                        <p className="font-medium text-foreground">{item?.title || `Recommendation ${index + 1}`}</p>
+                        <p className="mt-1 text-sm text-foreground/80">{item?.rationale || ""}</p>
+                        <p className="mt-1 text-sm text-rose-100">{item?.action || ""}</p>
+                      </article>
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-3 text-sm text-foreground/70">No missing keywords found.</p>
+                  <p className="mt-3 text-sm text-foreground/70">No recommendations available.</p>
                 )}
-              </article>
-            </section>
+              </section>
+            ) : null}
 
-            {output?.coverLetterDraft ? (
+            {!isPdfAnalysisTask ? (
+              <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <article className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
+                  <h2 className="text-lg font-semibold text-foreground">Optimized Bullets</h2>
+                  {Array.isArray(output?.optimizedBullets) && output.optimizedBullets.length > 0 ? (
+                    <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-foreground/85">
+                      {output.optimizedBullets.map((bullet: string, idx: number) => (
+                        <li key={`${idx}-${bullet.slice(0, 20)}`}>{bullet}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 text-sm text-foreground/70">No optimized bullets available.</p>
+                  )}
+                </article>
+
+                <article className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
+                  <h2 className="text-lg font-semibold text-foreground">Missing Keywords</h2>
+                  {Array.isArray(output?.missingKeywords) && output.missingKeywords.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {output.missingKeywords.map((keyword: string) => (
+                        <span key={keyword} className="rounded-full border border-rose-500/30 bg-rose-500/15 px-2.5 py-1 text-xs text-rose-100">
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-foreground/70">No missing keywords found.</p>
+                  )}
+                </article>
+              </section>
+            ) : null}
+
+            {!isPdfAnalysisTask && output?.coverLetterDraft ? (
               <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
                 <h2 className="text-lg font-semibold text-foreground">Cover Letter Draft</h2>
                 <p className="mt-3 whitespace-pre-wrap text-sm text-foreground/85">{output.coverLetterDraft}</p>
               </section>
             ) : null}
 
-            {output?.rewrittenResume ? (
+            {!isPdfAnalysisTask && output?.rewrittenResume ? (
               <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
                 <h2 className="text-lg font-semibold text-foreground">Rewritten Resume</h2>
                 <p className="mt-3 whitespace-pre-wrap text-sm text-foreground/85">{output.rewrittenResume}</p>

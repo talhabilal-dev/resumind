@@ -23,26 +23,6 @@ const TASKS: TaskCard[] = [
     title: "Full Resume Analysis",
     value: "Parsing, ATS score, and suggestions.",
   },
-  {
-    key: "job_description_match",
-    title: "Job Description Match",
-    value: "Specific alignment analysis.",
-  },
-  {
-    key: "cover_letter_generator",
-    title: "Cover Letter Generator",
-    value: "High-value, time-saving document.",
-  },
-  {
-    key: "bullet_point_optimization",
-    title: "Bullet Point Optimization",
-    value: "Small, granular improvements.",
-  },
-  {
-    key: "full_resume_rewrite",
-    title: "Full Resume Rewrite",
-    value: "Heavy token usage; high manual effort saved.",
-  },
 ];
 
 const TaskSelectionPage: React.FC = () => {

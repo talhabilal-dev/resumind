@@ -6,11 +6,15 @@ import { connectDB } from "@/lib/db";
 import { ResumeModel } from "@/models/resumeModel";
 import { RESUME_TASK_CREDIT_COST, type ResumeAgentTask } from "@/schemas/resumeAgentSchema";
 
-type HistoryTask = ResumeAgentTask | null;
+type HistoryTask = ResumeAgentTask | "pdf_resume_analysis" | null;
 
 function toWorkflowLabel(task: HistoryTask): string {
   if (!task) {
     return "Resume Analysis";
+  }
+
+  if (task === "pdf_resume_analysis") {
+    return "PDF Resume Analysis";
   }
 
   return task
@@ -22,6 +26,10 @@ function toWorkflowLabel(task: HistoryTask): string {
 function toCreditsUsed(task: HistoryTask): number {
   if (!task) {
     return 0;
+  }
+
+  if (task === "pdf_resume_analysis") {
+    return RESUME_TASK_CREDIT_COST.full_resume_analysis;
   }
 
   return RESUME_TASK_CREDIT_COST[task];

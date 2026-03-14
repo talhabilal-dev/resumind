@@ -1,241 +1,219 @@
-import { NextRequest, NextResponse } from "next/server";
-
-import { connectDB } from "@/lib/db";
-import { decodeToken } from "@/helpers/decodeToken";
-import User from "@/models/userModel";
-import { ResumeModel } from "@/models/resumeModel";
-import { CreditTransactionModel } from "@/models/transactionModel";
+import { NextRequest, NextResponse } from "next/server"
+import { z } from "zod"
 import {
-  analyzeResumeWithGPT,
-  getRequiredCredits,
-  ResumeAgentError,
-} from "@/helpers/geminiResumeAgent";
-import { resumeAgentApiRequestSchema } from "@/schemas/resumeAgentSchema";
+  AgentRequestSchema,
+  CREDIT_USD_RATE,
+  RESUME_TASK_CREDIT_COST,
+  resumeAgentApiRequestSchema,
+  type AgentOutput
+} from "@/schemas/resumeAgentSchema"
+import { runResumeAgent } from "@/services/resumeService"
+import { connectDB } from "@/lib/db"
+import { decodeToken } from "@/helpers/decodeToken"
+import { ResumeModel } from "@/models/resumeModel"
 
-function serializeError(error: unknown) {
-  if (error instanceof Error) {
-    return {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      cause: error.cause,
-    };
+const InternalRequestBodySchema = AgentRequestSchema.extend({
+  sessionId: z.string().optional().describe("Optional session ID for multi-turn memory")
+})
+
+type FrontendAnalysisResponse = {
+  output: {
+    summary: string
+    score: number | null
+    recommendations: Array<{
+      title: string
+      action: string
+      impact: "low" | "medium" | "high"
+    }>
+    missingKeywords: string[]
   }
+  safeguards: {
+    citationCoverage: number
+    warnings: string[]
+  }
+  cost: {
+    creditsCharged: number
+    usdCharged: number
+    tokenUsage: {
+      inputTokens: number
+      outputTokens: number
+      totalTokens: number
+    }
+  }
+}
+
+function toFrontendResponse(
+  output: AgentOutput,
+  tokenUsage: number
+): FrontendAnalysisResponse {
+  const creditsCharged = RESUME_TASK_CREDIT_COST.full_resume_analysis
+
+  const recommendations = output.result.improvements.slice(0, 12).map((item, index) => ({
+    title: `${item.section} Improvement ${index + 1}`,
+    action: item.suggestion,
+    impact: item.priority
+  }))
 
   return {
-    value: error,
-  };
+    output: {
+      summary: output.result.summary,
+      score: output.result.atsScore,
+      recommendations,
+      missingKeywords: output.result.keywords.slice(0, 30)
+    },
+    safeguards: {
+      citationCoverage: 1,
+      warnings: []
+    },
+    cost: {
+      creditsCharged,
+      usdCharged: Number((creditsCharged * CREDIT_USD_RATE).toFixed(2)),
+      tokenUsage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: tokenUsage
+      }
+    }
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const requestId = `analyze-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
   try {
-    console.log("[resume:analyze] request:start", { requestId });
-    await connectDB();
-    console.log("[resume:analyze] db:connected", { requestId });
-
-    const payload: any = await decodeToken(req);
-    const userId = payload?.userId;
-    console.log("[resume:analyze] auth:decoded", {
-      requestId,
-      hasUserId: Boolean(userId),
-    });
+    const payload: any = await decodeToken(req)
+    const userId = payload?.userId
 
     if (!userId) {
-      console.warn("[resume:analyze] auth:missing-user", { requestId });
       return NextResponse.json(
         { error: "Unauthorized. Please log in.", success: false },
         { status: 401 }
-      );
+      )
     }
 
-    const body = await req.json();
-    const parsedBody = resumeAgentApiRequestSchema.safeParse(body);
-    console.log("[resume:analyze] body:parsed", {
-      requestId,
-      parseSuccess: parsedBody.success,
-    });
+    const body = await req.json()
+    const parsedApi = resumeAgentApiRequestSchema.safeParse(body)
 
-    if (!parsedBody.success) {
-      console.warn("[resume:analyze] body:invalid", {
-        requestId,
-        issues: parsedBody.error.issues,
-      });
+    if (!parsedApi.success) {
       return NextResponse.json(
         {
-          error: parsedBody.error.issues[0]?.message || "Invalid analysis request.",
-          success: false,
+          error: "Invalid request body",
+          details: parsedApi.error.flatten()
         },
         { status: 400 }
-      );
+      )
     }
 
-    const user = await User.findById(userId).select("credits email username");
-    console.log("[resume:analyze] user:loaded", {
-      requestId,
-      found: Boolean(user),
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found.", success: false },
-        { status: 404 }
-      );
+    const internalBody = {
+      task: "full_resume_analysis" as const,
+      rawText: parsedApi.data.resumeText,
+      jobDescription: parsedApi.data.jobDescription,
+      userPreferences: {
+        targetRole: parsedApi.data.jobTitle
+      }
     }
 
-    const requiredCredits = getRequiredCredits(parsedBody.data.task);
-    console.log("[resume:analyze] credits:check", {
-      requestId,
-      requiredCredits,
-      availableCredits: user.credits,
-      task: parsedBody.data.task,
-    });
-
-    if (user.credits < requiredCredits) {
+    const parsed = InternalRequestBodySchema.safeParse(internalBody)
+    if (!parsed.success) {
       return NextResponse.json(
         {
-          error: `Not enough credits. Required ${requiredCredits}, available ${user.credits}.`,
-          requiredCredits,
-          availableCredits: user.credits,
-          success: false,
+          error: "Invalid normalized request body",
+          details: parsed.error.flatten()
         },
-        { status: 402 }
-      );
+        { status: 400 }
+      )
     }
 
-    let analysis;
-    try {
-      analysis = await analyzeResumeWithGPT({
-        ...parsedBody.data,
-        userId: String(user._id),
-        creditsAvailable: user.credits,
-        strictMode: parsedBody.data.strictMode ?? true,
-      });
-      console.log("[resume:analyze] ai:completed", {
-        requestId,
-        hasOutput: Boolean(analysis?.output),
-        tokenUsage: analysis?.cost?.tokenUsage,
-      });
+    await connectDB()
 
-    } catch (error: unknown) {
-      if (error instanceof ResumeAgentError) {
-        console.error("[resume:analyze] ai:resume-agent-error", {
-          requestId,
-          code: error.code,
-          message: error.message,
-        });
+    const result = await runResumeAgent({
+      userId,
+      request: parsed.data,
+      sessionId: parsed.data.sessionId
+    })
 
-        const status =
-          error.code === "INVALID_INPUT"
-            ? 400
-            : error.code === "INSUFFICIENT_CREDITS"
-              ? 402
-              : error.code === "MISSING_API_KEY"
-                ? 500
-                : 502;
+    if (!result.success || !result.output) {
+      return NextResponse.json({ error: result.error }, { status: 500 })
+    }
 
-        return NextResponse.json(
-          { error: error.message, code: error.code, success: false },
-          { status }
-        );
+    const totalTokens = result.tokensUsed ?? 0
+    const frontendData = toFrontendResponse(result.output, totalTokens)
+
+    if (result.resumeId) {
+      const setPayload: Record<string, unknown> = {
+        "parsedData.task": "full_resume_analysis",
+        "parsedData.jobTitle": parsedApi.data.jobTitle,
+        "parsedData.executedTask": "full_resume_analysis",
+        "aiMetadata.tokensUsed": totalTokens
       }
 
-      console.error("[resume:analyze] ai:unexpected-error", {
-        requestId,
-        error: serializeError(error),
-      });
-      throw error;
+      if (parsedApi.data.jobTitle) {
+        setPayload.title = parsedApi.data.jobTitle
+      }
+
+      await ResumeModel.findOneAndUpdate(
+        { _id: result.resumeId, userId },
+        { $set: setPayload }
+      )
     }
-
-    const chargedUser = await User.findOneAndUpdate(
-      { _id: user._id, credits: { $gte: requiredCredits } },
-      { $inc: { credits: -requiredCredits } },
-      { new: true }
-    ).select("credits");
-
-    console.log("[resume:analyze] credits:charged", {
-      requestId,
-      chargeSuccess: Boolean(chargedUser),
-      remainingCredits: chargedUser?.credits,
-    });
-
-    if (!chargedUser) {
-      return NextResponse.json(
-        {
-          error: "Credits changed during processing. Please retry.",
-          success: false,
-        },
-        { status: 409 }
-      );
-    }
-
-    try {
-      await CreditTransactionModel.create({
-        userId: user._id,
-        amount: requiredCredits,
-        type: "usage",
-        description: `Credits used for ${parsedBody.data.task} (${requiredCredits} credits)`,
-      });
-    } catch (error: any) {
-      // Do not fail successful analysis if transaction logging fails.
-      console.error("[resume:analyze] transaction-log:error", {
-        requestId,
-        error: serializeError(error),
-      });
-    }
-
-    const history = await ResumeModel.create({
-      userId: user._id,
-      title: `${parsedBody.data.jobTitle} - ${parsedBody.data.task}`,
-      rawText: parsedBody.data.resumeText.slice(0, 12000),
-      parsedData: {
-        task: parsedBody.data.task,
-        jobTitle: parsedBody.data.jobTitle,
-        jobDescription: parsedBody.data.jobDescription || "",
-        output: analysis.output,
-        safeguards: analysis.safeguards,
-      },
-      atsScore: analysis.output.score ?? undefined,
-      aiMetadata: {
-        lastAnalyzedAt: new Date(),
-        tokensUsed: analysis.cost.tokenUsage.totalTokens,
-      },
-      keywords: analysis.output.missingKeywords,
-    });
-
-    console.log("[resume:analyze] history:created", {
-      requestId,
-      historyId: String(history._id),
-    });
 
     return NextResponse.json(
       {
-        message: "Resume analysis completed.",
         success: true,
-        data: analysis,
+        task: "full_resume_analysis",
+        data: frontendData,
         credits: {
-          charged: requiredCredits,
-          remaining: chargedUser.credits,
+          charged: frontendData.cost.creditsCharged
         },
-        history: {
-          id: history._id,
-          createdAt: history.createdAt,
-        },
+        output: result.output,
+        resumeId: result.resumeId,
+        meta: {
+          tokensUsed: result.tokensUsed,
+          durationMs: result.durationMs
+        }
       },
       { status: 200 }
-    );
-  } catch (error: any) {
-    console.error("[resume:analyze] request:failed", {
-      requestId,
-      error: serializeError(error),
-    });
+    )
+  } catch (error) {
+    console.error("[POST /api/resume/agent] Unexpected error:", error)
     return NextResponse.json(
-      {
-        error: "Failed to analyze resume. Please try again.",
-        success: false,
-      },
+      { error: "Internal server error" },
       { status: 500 }
-    );
+    )
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const payload: any = await decodeToken(req)
+    const userId = payload?.userId
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please log in.", success: false },
+        { status: 401 }
+      )
+    }
+
+    const { searchParams } = new URL(req.url)
+    const resumeId = searchParams.get("resumeId")
+
+    if (!resumeId) {
+      return NextResponse.json({ error: "resumeId is required" }, { status: 400 })
+    }
+
+    await connectDB()
+
+    const resume = await ResumeModel.findOne({
+      _id: resumeId,
+      userId
+    }).lean()
+
+    if (!resume) {
+      return NextResponse.json({ error: "Resume not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, resume }, { status: 200 })
+  } catch (error) {
+    console.error("[GET /api/resume/agent] Unexpected error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

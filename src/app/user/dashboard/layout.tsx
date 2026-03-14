@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Brain,
   CircleDollarSign,
+  FileSearch,
   Gauge,
   History,
   LayoutList,
@@ -50,6 +51,7 @@ export default function DashboardLayout({
     () => [
       { name: "Dashboard", href: "/user/dashboard", icon: LayoutList },
       { name: "Select Task", href: "/user/dashboard/tasks", icon: ListChecks },
+      { name: "PDF Analysis", href: "/user/dashboard/pdf-analysis", icon: FileSearch },
       { name: "Resume History", href: "/user/dashboard/history", icon: History },
       { name: "Transactions", href: "/user/dashboard/transactions", icon: ReceiptText },
       { name: "Buy Credits", href: "/user/dashboard/credits", icon: CircleDollarSign },
