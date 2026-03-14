@@ -88,6 +88,7 @@ export default function PdfAnalysisPage() {
   const [companyName, setCompanyName] = React.useState("")
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [isExportingReport, setIsExportingReport] = React.useState(false)
+  const [isGeneratingImprovedCv, setIsGeneratingImprovedCv] = React.useState(false)
   const [feedback, setFeedback] = React.useState<Feedback | null>(null)
   const [creditsRemaining, setCreditsRemaining] = React.useState<number | null>(null)
 
@@ -134,6 +135,59 @@ export default function PdfAnalysisPage() {
       toast.error(error instanceof Error ? error.message : "Failed to export report")
     } finally {
       setIsExportingReport(false)
+    }
+  }
+
+  const generateImprovedCv = async () => {
+    if (!file || !feedback) {
+      toast.error("Analyze a PDF resume first")
+      return
+    }
+
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Improved CV generation currently supports PDF files only")
+      return
+    }
+
+    setIsGeneratingImprovedCv(true)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("feedback", JSON.stringify(feedback))
+      formData.append("jobTitle", jobTitle)
+      formData.append("companyName", companyName)
+
+      const response = await fetch("/api/users/resume/pdf-analysis/improve", {
+        method: "POST",
+        body: formData
+      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload?.error || payload?.message || "Failed to generate improved CV")
+      }
+
+      const remainingHeader = response.headers.get("X-Credits-Remaining")
+      if (remainingHeader && !Number.isNaN(Number(remainingHeader))) {
+        setCreditsRemaining(Number(remainingHeader))
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const baseName = file.name.replace(/\.[^./\\]+$/, "")
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `${baseName}-improved.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      toast.success("Improved PDF CV generated")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to generate improved CV")
+    } finally {
+      setIsGeneratingImprovedCv(false)
     }
   }
 
@@ -248,6 +302,16 @@ export default function PdfAnalysisPage() {
                 {isExportingReport ? "Exporting Report..." : "Export Analysis Report PDF"}
               </Button>
 
+              <Button
+                type="button"
+                className="gradient-accent border-0 text-white"
+                disabled={!feedback || !file || isGeneratingImprovedCv}
+                onClick={generateImprovedCv}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {isGeneratingImprovedCv ? "Creating Improved CV..." : "Create Improved CV (PDF)"}
+              </Button>
+
               {creditsRemaining !== null ? (
                 <p className="text-sm text-foreground/75">Credits remaining: {creditsRemaining}</p>
               ) : null}
@@ -282,6 +346,10 @@ export default function PdfAnalysisPage() {
               <p className="mt-2 flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-rose-300" />
                 Analysis report export now uses a server-generated PDF file.
+              </p>
+              <p className="mt-2 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-rose-300" />
+                Improved CV generation applies only AI "improve" suggestions and is currently PDF-only.
               </p>
             </section>
           </>
