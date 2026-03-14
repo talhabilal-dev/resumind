@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import React from "react";
 import { ArrowLeft, CalendarClock, Download, FileText, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 type DetailPayload = {
   id: string;
+  analysisId?: string | null;
   createdAt: string;
   updatedAt: string;
   title: string;
@@ -25,6 +27,7 @@ type DetailPayload = {
     task?: string;
     jobTitle?: string;
     jobDescription?: string;
+    companyName?: string;
     output?: any;
     safeguards?: {
       validationPassed?: boolean;
@@ -34,6 +37,39 @@ type DetailPayload = {
   };
   rawText: string;
 };
+
+type JdAnalysisOutput = {
+  ats_score: number;
+  jd_match_score: number;
+  missing_keywords: string[];
+  strengths: string[];
+  weaknesses: string[];
+  improvement_suggestions: Array<{
+    section: string;
+    issue: string;
+    suggestion: string;
+  }>;
+  improved_resume_content: {
+    summary: string;
+    experience: string;
+    skills: string;
+    projects: string;
+  };
+};
+
+function isJdAnalysisOutput(value: any): value is JdAnalysisOutput {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      typeof value.ats_score === "number" &&
+      typeof value.jd_match_score === "number" &&
+      Array.isArray(value.missing_keywords) &&
+      Array.isArray(value.strengths) &&
+      Array.isArray(value.weaknesses) &&
+      Array.isArray(value.improvement_suggestions) &&
+      value.improved_resume_content
+  );
+}
 
 type FeedbackTip = {
   type: "good" | "improve";
@@ -129,6 +165,7 @@ export default function ResumeHistoryDetailPage() {
   const [details, setDetails] = React.useState<DetailPayload | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [isGeneratingCv, setIsGeneratingCv] = React.useState(false);
 
   React.useEffect(() => {
     let mounted = true;
@@ -176,7 +213,57 @@ export default function ResumeHistoryDetailPage() {
   const output = details?.parsedData?.output || {};
   const safeguards = details?.parsedData?.safeguards || {};
   const isPdfAnalysisTask = details?.task === "pdf_resume_analysis";
+  const isJdAnalysisTask = details?.task === "jd_cv_analysis";
   const pdfOutput = isPdfFeedbackOutput(output) ? output : null;
+  const jdOutput = isJdAnalysisOutput(output) ? output : null;
+
+  const handleGenerateImprovedCv = async () => {
+    if (!details?.analysisId) {
+      toast.error("Analysis ID is missing for this record.");
+      return;
+    }
+
+    setIsGeneratingCv(true);
+
+    try {
+      const res = await fetch("/api/users/resume/jd-analysis/improve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysisId: details.analysisId }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || data.message || "Failed to generate improved CV.");
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const baseName =
+        (details.parsedData?.jobTitle || details.title || "improved-cv")
+          .replace(/[^a-zA-Z0-9\s-]/g, "")
+          .trim() || "improved-cv";
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${baseName}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      const remaining = res.headers.get("X-Credits-Remaining");
+      if (remaining) {
+        toast.success(`Improved CV generated. Credits remaining: ${remaining}.`);
+      } else {
+        toast.success("Improved CV generated and downloading.");
+      }
+    } catch (generationError: any) {
+      toast.error(generationError?.message || "Failed to generate improved CV.");
+    } finally {
+      setIsGeneratingCv(false);
+    }
+  };
 
   return (
     <>
@@ -240,10 +327,43 @@ export default function ResumeHistoryDetailPage() {
               <article className="glow-card rounded-xl bg-white/5 p-4">
                 <p className="text-sm text-foreground/70">ATS Score</p>
                 <p className="mt-2 text-lg font-semibold text-foreground">
-                  {typeof details.atsScore === "number" ? `${details.atsScore}/100` : "-"}
+                  {isJdAnalysisTask && jdOutput
+                    ? `${jdOutput.ats_score}/100`
+                    : typeof details.atsScore === "number"
+                      ? `${details.atsScore}/100`
+                      : "-"}
                 </p>
               </article>
             </section>
+
+            {isJdAnalysisTask && jdOutput ? (
+              <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <article className="glow-card rounded-xl bg-white/5 p-4">
+                  <p className="text-sm text-foreground/70">JD Match Score</p>
+                  <p className="mt-2 text-lg font-semibold text-foreground">{jdOutput.jd_match_score}/100</p>
+                </article>
+
+                <article className="glow-card rounded-xl bg-white/5 p-4">
+                  <p className="text-sm text-foreground/70">Target Company</p>
+                  <p className="mt-2 text-lg font-semibold text-foreground">
+                    {details.parsedData?.companyName || "-"}
+                  </p>
+                </article>
+
+                <article className="glow-card rounded-xl bg-white/5 p-4">
+                  <p className="text-sm text-foreground/70">Improved CV</p>
+                  <button
+                    type="button"
+                    onClick={handleGenerateImprovedCv}
+                    disabled={isGeneratingCv}
+                    className="mt-2 inline-flex items-center gap-2 rounded-md border border-rose-500/25 bg-rose-500/15 px-3 py-2 text-sm text-rose-100 hover:bg-rose-500/25 disabled:opacity-60"
+                  >
+                    <Download className="h-4 w-4" />
+                    {isGeneratingCv ? "Generating..." : "Generate Improved CV"}
+                  </button>
+                </article>
+              </section>
+            ) : null}
 
             <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
               <div className="mb-3 flex items-center gap-2">
@@ -268,6 +388,11 @@ export default function ResumeHistoryDetailPage() {
                 <p className="whitespace-pre-wrap text-sm text-foreground/85">
                   This report was generated from uploaded resume analysis with AI category scoring and
                   targeted recommendations.
+                </p>
+              ) : isJdAnalysisTask && jdOutput ? (
+                <p className="whitespace-pre-wrap text-sm text-foreground/85">
+                  {jdOutput.improved_resume_content?.summary ||
+                    "JD analysis includes ATS/JD scoring, keyword gaps and actionable suggestions."}
                 </p>
               ) : (
                 <p className="whitespace-pre-wrap text-sm text-foreground/85">
@@ -294,7 +419,87 @@ export default function ResumeHistoryDetailPage() {
               </>
             ) : null}
 
-            {!isPdfAnalysisTask ? (
+            {isJdAnalysisTask && jdOutput ? (
+              <>
+                <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
+                  <h2 className="text-lg font-semibold text-foreground">Missing Keywords</h2>
+                  {jdOutput.missing_keywords.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {jdOutput.missing_keywords.map((keyword) => (
+                        <span key={keyword} className="rounded-full border border-rose-500/30 bg-rose-500/15 px-2.5 py-1 text-xs text-rose-100">
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-foreground/70">No missing keywords found.</p>
+                  )}
+                </section>
+
+                <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <article className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
+                    <h2 className="text-lg font-semibold text-foreground">Strengths</h2>
+                    <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-foreground/85">
+                      {jdOutput.strengths.map((item, idx) => (
+                        <li key={`${idx}-${item.slice(0, 20)}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </article>
+
+                  <article className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
+                    <h2 className="text-lg font-semibold text-foreground">Weaknesses</h2>
+                    <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-foreground/85">
+                      {jdOutput.weaknesses.map((item, idx) => (
+                        <li key={`${idx}-${item.slice(0, 20)}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </article>
+                </section>
+
+                <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
+                  <h2 className="text-lg font-semibold text-foreground">Improvement Suggestions</h2>
+                  <div className="mt-3 space-y-3">
+                    {jdOutput.improvement_suggestions.map((item, idx) => (
+                      <article key={`${idx}-${item.section}`} className="rounded-lg border border-rose-500/15 bg-black/20 p-3">
+                        <p className="font-medium text-foreground">{item.section}</p>
+                        <p className="mt-1 text-sm text-foreground/80">{item.issue}</p>
+                        <p className="mt-1 text-sm text-rose-100">{item.suggestion}</p>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
+                  <h2 className="text-lg font-semibold text-foreground">AI-Improved Resume Content</h2>
+                  <div className="mt-3 space-y-4">
+                    {[
+                      { key: "summary", label: "Professional Summary" },
+                      { key: "experience", label: "Experience" },
+                      { key: "skills", label: "Skills" },
+                      { key: "projects", label: "Projects" },
+                    ].map(({ key, label }) => {
+                      const value =
+                        jdOutput.improved_resume_content[
+                          key as keyof typeof jdOutput.improved_resume_content
+                        ];
+
+                      if (!value?.trim()) {
+                        return null;
+                      }
+
+                      return (
+                        <article key={key} className="rounded-lg border border-rose-500/15 bg-black/20 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-rose-300">{label}</p>
+                          <p className="mt-2 whitespace-pre-wrap text-sm text-foreground/85">{value}</p>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              </>
+            ) : null}
+
+            {!isPdfAnalysisTask && !isJdAnalysisTask ? (
               <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
                 <h2 className="text-lg font-semibold text-foreground">Recommendations</h2>
                 {Array.isArray(output?.recommendations) && output.recommendations.length > 0 ? (
@@ -313,7 +518,7 @@ export default function ResumeHistoryDetailPage() {
               </section>
             ) : null}
 
-            {!isPdfAnalysisTask ? (
+            {!isPdfAnalysisTask && !isJdAnalysisTask ? (
               <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <article className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
                   <h2 className="text-lg font-semibold text-foreground">Optimized Bullets</h2>
@@ -345,20 +550,21 @@ export default function ResumeHistoryDetailPage() {
               </section>
             ) : null}
 
-            {!isPdfAnalysisTask && output?.coverLetterDraft ? (
+            {!isPdfAnalysisTask && !isJdAnalysisTask && output?.coverLetterDraft ? (
               <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
                 <h2 className="text-lg font-semibold text-foreground">Cover Letter Draft</h2>
                 <p className="mt-3 whitespace-pre-wrap text-sm text-foreground/85">{output.coverLetterDraft}</p>
               </section>
             ) : null}
 
-            {!isPdfAnalysisTask && output?.rewrittenResume ? (
+            {!isPdfAnalysisTask && !isJdAnalysisTask && output?.rewrittenResume ? (
               <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
                 <h2 className="text-lg font-semibold text-foreground">Rewritten Resume</h2>
                 <p className="mt-3 whitespace-pre-wrap text-sm text-foreground/85">{output.rewrittenResume}</p>
               </section>
             ) : null}
 
+            {!isJdAnalysisTask ? (
             <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
               <h2 className="text-lg font-semibold text-foreground">Safeguards</h2>
               <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-foreground/80 sm:grid-cols-2">
@@ -386,6 +592,7 @@ export default function ResumeHistoryDetailPage() {
                 </div>
               ) : null}
             </section>
+            ) : null}
 
             <section className="rounded-xl border border-rose-500/20 bg-black/20 p-4 text-xs text-foreground/70">
               <div className="flex items-center gap-2">

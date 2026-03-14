@@ -4,8 +4,10 @@ import { decodeToken } from "@/helpers/decodeToken";
 import { connectDB } from "@/lib/db";
 import { ResumeModel } from "@/models/resumeModel";
 import { RESUME_TASK_CREDIT_COST, type ResumeAgentTask } from "@/schemas/resumeAgentSchema";
+import { JdAnalysisModel } from "@/models/jdAnalysisModel";
+import { JD_ANALYSIS_CREDIT_COST } from "@/schemas/jdAnalysisSchema";
 
-type HistoryTask = ResumeAgentTask | "pdf_resume_analysis" | null;
+type HistoryTask = ResumeAgentTask | "pdf_resume_analysis" | "jd_cv_analysis" | null;
 
 function toWorkflowLabel(task: HistoryTask): string {
   if (!task) {
@@ -14,6 +16,10 @@ function toWorkflowLabel(task: HistoryTask): string {
 
   if (task === "pdf_resume_analysis") {
     return "PDF Resume Analysis";
+  }
+
+  if (task === "jd_cv_analysis") {
+    return "CV + JD Analysis";
   }
 
   return task
@@ -29,6 +35,10 @@ function toCreditsUsed(task: HistoryTask): number {
 
   if (task === "pdf_resume_analysis") {
     return RESUME_TASK_CREDIT_COST.full_resume_analysis;
+  }
+
+  if (task === "jd_cv_analysis") {
+    return JD_ANALYSIS_CREDIT_COST;
   }
 
   return RESUME_TASK_CREDIT_COST[task];
@@ -48,18 +58,40 @@ export async function GET(req: NextRequest) {
 
     await connectDB();
 
-    const records = await ResumeModel.find({ userId })
+    const { searchParams } = new URL(req.url);
+    const pageParam = Number(searchParams.get("page") || "1");
+    const limitParam = Number(searchParams.get("limit") || "10");
+
+    const page = Number.isFinite(pageParam) && pageParam > 0 ? Math.floor(pageParam) : 1;
+    const limit =
+      Number.isFinite(limitParam) && limitParam > 0
+        ? Math.min(Math.floor(limitParam), 50)
+        : 10;
+    const skip = (page - 1) * limit;
+
+    const [resumeCount, jdCount] = await Promise.all([
+      ResumeModel.countDocuments({ userId }),
+      JdAnalysisModel.countDocuments({ userId }),
+    ]);
+    const totalItems = resumeCount + jdCount;
+    const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+
+    const resumeRecords = await ResumeModel.find({ userId })
       .sort({ createdAt: -1 })
       .select("_id createdAt atsScore parsedData.task parsedData.jobTitle title")
-      .limit(100)
       .lean();
 
-    const history = records.map((item: any) => {
+    const jdRecords = await JdAnalysisModel.find({ userId })
+      .sort({ createdAt: -1 })
+      .select("_id createdAt jobTitle creditsCharged analysisResult.ats_score")
+      .lean();
+
+    const resumeHistory = resumeRecords.map((item: any) => {
       const task = (item?.parsedData?.task || null) as HistoryTask;
       const jobTitle = item?.parsedData?.jobTitle || item?.title || "Untitled";
 
       return {
-        id: String(item._id),
+        id: `resume:${String(item._id)}`,
         createdAt: item.createdAt,
         jobTitle,
         workflow: toWorkflowLabel(task),
@@ -69,7 +101,41 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ success: true, history }, { status: 200 });
+    const jdHistory = jdRecords.map((item: any) => ({
+      id: `jd:${String(item._id)}`,
+      createdAt: item.createdAt,
+      jobTitle: item?.jobTitle || "JD Analysis",
+      workflow: toWorkflowLabel("jd_cv_analysis"),
+      creditsUsed:
+        typeof item?.creditsCharged === "number"
+          ? item.creditsCharged
+          : toCreditsUsed("jd_cv_analysis"),
+      score:
+        typeof item?.analysisResult?.ats_score === "number"
+          ? item.analysisResult.ats_score
+          : null,
+      status: "completed",
+    }));
+
+    const mergedHistory = [...resumeHistory, ...jdHistory]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    const history = mergedHistory.slice(skip, skip + limit);
+
+    return NextResponse.json(
+      {
+        success: true,
+        history,
+        pagination: {
+          page,
+          limit,
+          totalItems,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      },
+      { status: 200 }
+    );
   } catch (error: any) {
     console.error("Fetch resume history error:", error?.message || error);
     return NextResponse.json(

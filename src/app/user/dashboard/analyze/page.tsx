@@ -186,7 +186,7 @@ const AnalyzePage: React.FC = () => {
                   type="button"
                   variant="outline"
                   className="h-8 border-rose-500/30 bg-white/5 text-foreground hover:bg-white/10"
-                  onClick={() => router.push("/user/dashboard/tasks")}
+                  onClick={() => router.push("/user/dashboard/jd-analysis")}
                 >
                   Change
                 </Button>

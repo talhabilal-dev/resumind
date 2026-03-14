@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Brain,
   CircleDollarSign,
-  FileSearch,
   Gauge,
   History,
   LayoutList,
@@ -51,8 +50,6 @@ export default function DashboardLayout({
   const menuItems = useMemo(
     () => [
       { name: "Dashboard", href: "/user/dashboard", icon: LayoutList },
-      { name: "Select Task", href: "/user/dashboard/tasks", icon: ListChecks },
-      { name: "PDF Analysis", href: "/user/dashboard/pdf-analysis", icon: FileSearch },
       // ── New: JD-matched CV analysis ──────────────────────────────────────
       { name: "CV + JD Analysis", href: "/user/dashboard/jd-analysis", icon: ScanSearch },
       { name: "Resume History", href: "/user/dashboard/history", icon: History },

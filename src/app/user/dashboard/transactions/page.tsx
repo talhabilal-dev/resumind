@@ -13,6 +13,17 @@ type Transaction = {
   createdAt: string;
 };
 
+type PaginationMeta = {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+};
+
+const PAGE_SIZE = 10;
+
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
@@ -22,17 +33,24 @@ const formatDate = (value: string) =>
 const TransactionsPage: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
 
   useEffect(() => {
     const fetchTransactions = async () => {
+      setLoading(true);
       try {
-        const response = await fetch("/api/users/credits/transactions", {
+        const response = await fetch(
+          `/api/users/credits/transactions?page=${currentPage}&limit=${PAGE_SIZE}`,
+          {
           cache: "no-store",
-        });
+          }
+        );
         const payload = await response.json();
 
         if (response.ok && Array.isArray(payload?.transactions)) {
           setTransactions(payload.transactions);
+          setPagination(payload?.pagination || null);
         }
       } finally {
         setLoading(false);
@@ -40,7 +58,7 @@ const TransactionsPage: React.FC = () => {
     };
 
     fetchTransactions();
-  }, []);
+  }, [currentPage]);
 
   const summary = useMemo(() => {
     return transactions.reduce(
@@ -86,7 +104,9 @@ const TransactionsPage: React.FC = () => {
         <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground">Recent Activity</h2>
-            <span className="text-xs text-foreground/60">Latest 100 entries</span>
+            <span className="text-xs text-foreground/60">
+              Page {pagination?.page || currentPage} of {pagination?.totalPages || 1}
+            </span>
           </div>
 
           {loading ? (
@@ -146,6 +166,36 @@ const TransactionsPage: React.FC = () => {
               </table>
             </div>
           )}
+
+          {!loading && transactions.length > 0 ? (
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <p className="text-xs text-foreground/60">
+                Showing {transactions.length} of {pagination?.totalItems || transactions.length} transactions
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((value) => Math.max(1, value - 1))}
+                  disabled={!pagination?.hasPreviousPage}
+                  className="rounded-md border border-rose-500/25 bg-white/5 px-3 py-1.5 text-xs text-foreground hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((value) =>
+                      pagination?.hasNextPage ? value + 1 : value
+                    )
+                  }
+                  disabled={!pagination?.hasNextPage}
+                  className="rounded-md border border-rose-500/25 bg-white/5 px-3 py-1.5 text-xs text-foreground hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          ) : null}
         </section>
       </main>
     </>

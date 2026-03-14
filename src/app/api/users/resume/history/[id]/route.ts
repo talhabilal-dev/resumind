@@ -5,8 +5,10 @@ import { decodeToken } from "@/helpers/decodeToken";
 import { connectDB } from "@/lib/db";
 import { ResumeModel } from "@/models/resumeModel";
 import { RESUME_TASK_CREDIT_COST, type ResumeAgentTask } from "@/schemas/resumeAgentSchema";
+import { JdAnalysisModel } from "@/models/jdAnalysisModel";
+import { JD_ANALYSIS_CREDIT_COST } from "@/schemas/jdAnalysisSchema";
 
-type HistoryTask = ResumeAgentTask | "pdf_resume_analysis" | null;
+type HistoryTask = ResumeAgentTask | "pdf_resume_analysis" | "jd_cv_analysis" | null;
 
 function toWorkflowLabel(task: HistoryTask): string {
   if (!task) {
@@ -15,6 +17,10 @@ function toWorkflowLabel(task: HistoryTask): string {
 
   if (task === "pdf_resume_analysis") {
     return "PDF Resume Analysis";
+  }
+
+  if (task === "jd_cv_analysis") {
+    return "CV + JD Analysis";
   }
 
   return task
@@ -30,6 +36,10 @@ function toCreditsUsed(task: HistoryTask): number {
 
   if (task === "pdf_resume_analysis") {
     return RESUME_TASK_CREDIT_COST.full_resume_analysis;
+  }
+
+  if (task === "jd_cv_analysis") {
+    return JD_ANALYSIS_CREDIT_COST;
   }
 
   return RESUME_TASK_CREDIT_COST[task];
@@ -50,8 +60,12 @@ export async function GET(
       );
     }
 
-    const { id } = await context.params;
-    if (!Types.ObjectId.isValid(id)) {
+    const { id: rawId } = await context.params;
+    const parsedId = rawId.includes(":") ? rawId.split(":", 2) : ["resume", rawId];
+    const source = parsedId[0];
+    const id = parsedId[1];
+
+    if (!["resume", "jd"].includes(source) || !Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid history id.", success: false },
         { status: 400 }
@@ -60,13 +74,69 @@ export async function GET(
 
     await connectDB();
 
+    if (source === "jd") {
+      const jdRecord = await JdAnalysisModel.findOne({
+        _id: id,
+        userId,
+      })
+        .select(
+          "_id createdAt updatedAt jobTitle companyName analysisResult tokensUsed creditsCharged"
+        )
+        .lean();
+
+      if (!jdRecord) {
+        return NextResponse.json(
+          { error: "History record not found.", success: false },
+          { status: 404 }
+        );
+      }
+
+      const details = {
+        id: `jd:${String(jdRecord._id)}`,
+        analysisId: String(jdRecord._id),
+        createdAt: jdRecord.createdAt,
+        updatedAt: jdRecord.updatedAt,
+        title: jdRecord.jobTitle || "JD Analysis",
+        task: "jd_cv_analysis" as HistoryTask,
+        workflow: toWorkflowLabel("jd_cv_analysis"),
+        creditsUsed:
+          typeof jdRecord.creditsCharged === "number"
+            ? jdRecord.creditsCharged
+            : toCreditsUsed("jd_cv_analysis"),
+        atsScore:
+          typeof jdRecord?.analysisResult?.ats_score === "number"
+            ? jdRecord.analysisResult.ats_score
+            : null,
+        keywords: Array.isArray(jdRecord?.analysisResult?.missing_keywords)
+          ? jdRecord.analysisResult.missing_keywords
+          : [],
+        aiMetadata: {
+          lastAnalyzedAt: jdRecord.updatedAt,
+          tokensUsed: jdRecord.tokensUsed || 0,
+        },
+        parsedData: {
+          task: "jd_cv_analysis",
+          jobTitle: jdRecord.jobTitle || "",
+          jobDescription: "",
+          output: jdRecord.analysisResult || {},
+          safeguards: {
+            validationPassed: true,
+            citationCoverage: null,
+            warnings: [],
+          },
+          companyName: jdRecord.companyName || "",
+        },
+        rawText: "",
+      };
+
+      return NextResponse.json({ success: true, details }, { status: 200 });
+    }
+
     const record = await ResumeModel.findOne({
       _id: id,
       userId,
     })
-      .select(
-        "_id createdAt updatedAt title atsScore rawText keywords aiMetadata parsedData"
-      )
+      .select("_id createdAt updatedAt title atsScore rawText keywords aiMetadata parsedData")
       .lean();
 
     if (!record) {
@@ -78,7 +148,8 @@ export async function GET(
 
     const task = (record?.parsedData?.task || null) as HistoryTask;
     const details = {
-      id: String(record._id),
+      id: `resume:${String(record._id)}`,
+      analysisId: null,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
       title: record.title,

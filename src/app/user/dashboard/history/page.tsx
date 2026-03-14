@@ -25,6 +25,17 @@ type ResumeHistoryItem = {
   status: ResumeHistoryStatus;
 };
 
+type PaginationMeta = {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+};
+
+const PAGE_SIZE = 10;
+
 function formatDateTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -59,6 +70,8 @@ const ResumeHistoryPage: React.FC = () => {
   const [historyData, setHistoryData] = React.useState<ResumeHistoryItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [pagination, setPagination] = React.useState<PaginationMeta | null>(null);
 
   React.useEffect(() => {
     let mounted = true;
@@ -68,19 +81,23 @@ const ResumeHistoryPage: React.FC = () => {
       setError(null);
 
       try {
-        const response = await fetch("/api/users/resume/history", {
+        const responseWithPagination = await fetch(
+          `/api/users/resume/history?page=${currentPage}&limit=${PAGE_SIZE}`,
+          {
           method: "GET",
           credentials: "include",
           cache: "no-store",
-        });
+          }
+        );
 
-        const payload = await response.json();
-        if (!response.ok || !payload?.success) {
+        const payload = await responseWithPagination.json();
+        if (!responseWithPagination.ok || !payload?.success) {
           throw new Error(payload?.error || "Failed to load resume history.");
         }
 
         if (mounted) {
           setHistoryData(Array.isArray(payload.history) ? payload.history : []);
+          setPagination(payload?.pagination || null);
         }
       } catch (fetchError: any) {
         if (mounted) {
@@ -99,7 +116,7 @@ const ResumeHistoryPage: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [currentPage]);
 
   const totalCreditsUsed = historyData.reduce((acc, item) => acc + item.creditsUsed, 0);
   const completedCount = historyData.filter((item) => item.status === "completed").length;
@@ -146,6 +163,9 @@ const ResumeHistoryPage: React.FC = () => {
           </div>
           <p className="text-sm text-foreground/65">
             Includes job target, workflow, credits used, score and status. No file downloads.
+          </p>
+          <p className="mt-1 text-xs text-foreground/55">
+            Page {pagination?.page || currentPage} of {pagination?.totalPages || 1}
           </p>
 
           <div className="mt-4 overflow-x-auto">
@@ -220,6 +240,36 @@ const ResumeHistoryPage: React.FC = () => {
             </table>
             )}
           </div>
+
+          {!loading && historyData.length > 0 ? (
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <p className="text-xs text-foreground/60">
+                Showing {historyData.length} of {pagination?.totalItems || historyData.length} records
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((value) => Math.max(1, value - 1))}
+                  disabled={!pagination?.hasPreviousPage}
+                  className="rounded-md border border-rose-500/25 bg-white/5 px-3 py-1.5 text-xs text-foreground hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((value) =>
+                      pagination?.hasNextPage ? value + 1 : value
+                    )
+                  }
+                  disabled={!pagination?.hasNextPage}
+                  className="rounded-md border border-rose-500/25 bg-white/5 px-3 py-1.5 text-xs text-foreground hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="rounded-xl border border-rose-500/20 bg-black/20 p-4 text-xs text-foreground/70">

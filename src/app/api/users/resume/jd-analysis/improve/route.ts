@@ -3,7 +3,7 @@ import { Types } from "mongoose"
 
 import { decodeToken } from "@/helpers/decodeToken"
 import { connectDB } from "@/lib/db"
-import { buildImprovedCvPdf } from "@/helpers/jdImprovedCvPdf"
+import { buildImprovedCvPdf } from "../../../../../../helpers/jdImprovedCvPdf"
 import User from "@/models/userModel"
 import { JdAnalysisModel } from "@/models/jdAnalysisModel"
 import { CreditTransactionModel } from "@/models/transactionModel"
@@ -151,8 +151,10 @@ export async function POST(req: NextRequest) {
     // ── Return PDF ────────────────────────────────────────────────────────────
     const baseName = sanitiseBaseName(record.jobTitle || "improved-cv")
     const filename = `${baseName}-improved.pdf`
+    const buffer = new ArrayBuffer(pdfBytes.byteLength)
+    new Uint8Array(buffer).set(pdfBytes)
 
-    return new NextResponse(new Blob([pdfBytes], { type: "application/pdf" }), {
+    return new NextResponse(new Blob([buffer], { type: "application/pdf" }), {
         status: 200,
         headers: {
             "Content-Type": "application/pdf",
