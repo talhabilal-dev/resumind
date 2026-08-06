@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { FileText, Sparkles, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -53,7 +52,6 @@ const TASK_LABELS: Record<ResumeAgentTask, string> = {
 };
 
 const AnalyzePage: React.FC = () => {
-  const router = useRouter();
   const [formData, setFormData] = useState<ResumeFormData>({
     jobTitle: "",
     jobDescription: "",
@@ -149,10 +147,9 @@ const AnalyzePage: React.FC = () => {
       setAnalysis(payload.data as AnalysisResponse);
 
       toast({
-        title: "Error",
+        title: "Success",
         description: `Analysis complete. ${payload.credits?.charged || RESUME_TASK_CREDIT_COST[selectedTask]} credits used.`,
-        variant: "destructive"
-
+        variant: "default"
       })
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Analysis failed.";
@@ -192,19 +189,12 @@ const AnalyzePage: React.FC = () => {
               <label className="mb-1 block text-sm text-foreground/80">
                 Analysis Task
               </label>
-              <div className="flex items-center justify-between rounded-lg border border-rose-500/25 bg-black/20 px-4 py-2.5">
+              <div className="rounded-lg border border-rose-500/25 bg-black/20 px-4 py-2.5">
                 <p className="text-sm text-foreground">{TASK_LABELS[selectedTask]}</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-8 border-rose-500/30 bg-white/5 text-foreground hover:bg-white/10"
-                  onClick={() => router.push("/user/dashboard/jd-analysis")}
-                >
-                  Change
-                </Button>
               </div>
-              <p className="mt-1 text-xs text-rose-200">
-                Credits required: {RESUME_TASK_CREDIT_COST[selectedTask]}
+              <p className="mt-1 text-xs text-foreground/70">
+                Credits required: {RESUME_TASK_CREDIT_COST[selectedTask]} · For CV + JD matching use
+                the dedicated workflow in the sidebar.
               </p>
             </div>
 

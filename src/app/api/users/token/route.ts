@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       isVerified: user.isVerified as boolean,
     };
 
-    const newAccessToken = await new SignJWT({ ...tokenData })
+    const newAccessToken = await new SignJWT({ ...tokenData, type: "access" })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("1h") // Short-lived access token

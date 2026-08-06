@@ -70,22 +70,57 @@ export async function GET(req: NextRequest) {
         : 10;
     const skip = (page - 1) * limit;
 
+    const q = (searchParams.get("q") || "").trim();
+    const workflowFilter = searchParams.get("workflow") || "";
+    const sort = searchParams.get("sort") || "newest";
+
+    const isResumeFlow = !workflowFilter || workflowFilter === "resume";
+    const isJdFlow = !workflowFilter || workflowFilter === "jd";
+
+    const sortDirection: 1 | -1 = sort === "oldest" ? 1 : -1;
+
+    const titleFilter = q
+      ? {
+          $or: [
+            { "parsedData.jobTitle": { $regex: q, $options: "i" } },
+            { title: { $regex: q, $options: "i" } },
+          ],
+        }
+      : {};
+
+    const jdTitleFilter = q
+      ? { jobTitle: { $regex: q, $options: "i" } }
+      : {};
+
+    const resumeMatch = { userId, ...titleFilter };
+    const jdMatch = { userId, ...jdTitleFilter };
+
     const [resumeCount, jdCount] = await Promise.all([
-      ResumeModel.countDocuments({ userId }),
-      JdAnalysisModel.countDocuments({ userId }),
+      isResumeFlow ? ResumeModel.countDocuments(resumeMatch) : Promise.resolve(0),
+      isJdFlow ? JdAnalysisModel.countDocuments(jdMatch) : Promise.resolve(0),
     ]);
     const totalItems = resumeCount + jdCount;
     const totalPages = Math.max(1, Math.ceil(totalItems / limit));
 
-    const resumeRecords = await ResumeModel.find({ userId })
-      .sort({ createdAt: -1 })
-      .select("_id createdAt atsScore parsedData.task parsedData.jobTitle title")
-      .lean();
-
-    const jdRecords = await JdAnalysisModel.find({ userId })
-      .sort({ createdAt: -1 })
-      .select("_id createdAt jobTitle creditsCharged analysisResult.ats_score")
-      .lean();
+    // Bounded per-collection fetch: any record that can land on the requested
+    // page must rank within (skip + limit) newest in its own collection, so
+    // merging and slicing stays correct without loading the full history.
+    const [resumeRecords, jdRecords] = await Promise.all([
+      isResumeFlow
+        ? ResumeModel.find(resumeMatch)
+            .sort({ createdAt: sortDirection })
+            .select("_id createdAt atsScore parsedData.task parsedData.jobTitle title")
+            .limit(skip + limit)
+            .lean()
+        : Promise.resolve([]),
+      isJdFlow
+        ? JdAnalysisModel.find(jdMatch)
+            .sort({ createdAt: sortDirection })
+            .select("_id createdAt jobTitle creditsCharged analysisResult.ats_score")
+            .limit(skip + limit)
+            .lean()
+        : Promise.resolve([]),
+    ]);
 
     const resumeHistory = resumeRecords.map((item: any) => {
       const task = (item?.parsedData?.task || null) as HistoryTask;
@@ -119,8 +154,10 @@ export async function GET(req: NextRequest) {
       status: "completed",
     }));
 
-    const mergedHistory = [...resumeHistory, ...jdHistory]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    const mergedHistory = [...resumeHistory, ...jdHistory].sort(
+      (a, b) =>
+        sortDirection * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    );
     const history = mergedHistory.slice(skip, skip + limit);
 
     return NextResponse.json(

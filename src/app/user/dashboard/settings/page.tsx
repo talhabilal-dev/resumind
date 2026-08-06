@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ChevronRight,
-  Copy,
   Eye,
   EyeOff,
   Save,
@@ -56,7 +55,6 @@ const SettingsPage: React.FC = () => {
 
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showCardNumber, setShowCardNumber] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -460,55 +458,27 @@ const SettingsPage: React.FC = () => {
         </section>
 
         <section className="mb-6 rounded-xl glow-card bg-white/5 p-5">
-          <h2 className="text-lg font-semibold text-foreground">Payment Method</h2>
-          <p className="mt-1 text-sm text-foreground/65">Your saved debit card information.</p>
+          <h2 className="text-lg font-semibold text-foreground">Billing</h2>
+          <p className="mt-1 text-sm text-foreground/65">
+            Resumind does not store card details. Payments are processed securely by Stripe
+            during each checkout.
+          </p>
 
-          <div className="mt-4 rounded-lg border border-rose-500/25 bg-linear-to-br from-rose-900/20 to-rose-800/30 backdrop-blur-sm p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="text-xs text-foreground/60 font-medium">DEBIT CARD</div>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText("4242424242424242");
-                  toast({
-                    title: "Copied!",
-                    description: "Card number copied to clipboard",
-                    variant: "default"
-                  });
-                }}
-                className="text-foreground/60 hover:text-foreground transition-colors"
-                title="Copy card number"
-              >
-                <Copy className="h-4 w-4" />
-              </button>
+          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-rose-500/25 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Buy credit packs</p>
+              <p className="text-sm text-foreground/70">
+                One-time credit purchases via Stripe-hosted checkout. No subscription or saved card.
+              </p>
             </div>
-            
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-foreground/90 font-mono text-lg tracking-wider">
-                  {showCardNumber ? "4242 4242 4242 4242" : "•••• •••• •••• 4242"}
-                </div>
-                <button
-                  onClick={() => setShowCardNumber(!showCardNumber)}
-                  className="text-foreground/60 hover:text-foreground transition-colors ml-2"
-                  title={showCardNumber ? "Hide card number" : "Show card number"}
-                >
-                  {showCardNumber ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-end">
-              <div>
-                <div className="text-xs text-foreground/60 mb-1">EXPIRES</div>
-                <div className="text-foreground/90 font-medium">
-                  03/{new Date().getFullYear() + 2}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-foreground/60 mb-1">CVV</div>
-                <div className="text-foreground/90 font-medium">114</div>
-              </div>
-            </div>
+            <Button
+              type="button"
+              className="gradient-accent shrink-0 border-0 text-white"
+              onClick={() => router.push("/user/dashboard/credits")}
+            >
+              <ChevronRight className="mr-1 h-4 w-4" />
+              Buy Credits
+            </Button>
           </div>
         </section>
 

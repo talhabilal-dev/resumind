@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db";
 import User from "@/models/userModel";
 import { NextResponse, NextRequest } from "next/server";
+import { hashToken } from "@/helpers/tokens";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
 
     // Find user by verification token
     const user = await User.findOne({
-      verificationToken: token,
+      verificationToken: hashToken(String(token)),
       verificationTokenExpiry: { $gt: new Date() }, // Check if token is still valid
     });
 

@@ -3,6 +3,7 @@ import User from "@/models/userModel";
 import { NextResponse, NextRequest } from "next/server";
 import { sendEmail } from "@/helpers/mailer";
 import { forgotPasswordEmailSchema } from "@/schemas/userSchema";
+import { getClientIp, rateLimit } from "@/helpers/rateLimit";
 
 const EMAIL_SUBJECT = "Password Reset Verification";
 
@@ -20,13 +21,24 @@ export async function POST(req: NextRequest) {
     }
     const { email } = parsed.data;
 
-    // Check if email exists in the database
+    const ip = getClientIp(req);
+    const emailLimit = rateLimit({ ip, key: `forgot:${email}`, limit: 3, windowSeconds: 600 });
+    const ipLimit = rateLimit({ ip, key: "forgot-sent", limit: 20, windowSeconds: 60 });
+    if (!emailLimit.allowed || !ipLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many reset requests. Please try again later.", success: false },
+        { status: 429 }
+      );
+    }
+
+    // Check if email exists in the database (do not reveal existence to the
+    // requester — always return the same generic response).
     const existingUser = await User.findOne({ email });
 
     if (!existingUser) {
       return NextResponse.json(
-        { error: "Email not found.", success: false },
-        { status: 404 }
+        { message: "If an account exists for this email, a reset link has been sent.", success: true },
+        { status: 200 }
       );
     }
 

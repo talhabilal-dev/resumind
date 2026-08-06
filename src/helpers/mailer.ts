@@ -1,8 +1,8 @@
 import { Resend } from "resend";
-import bcrypt from "bcryptjs";
 import User from "@/models/userModel";
 import EmailTemplate from "../../email/template";
 import { connectDB } from "@/lib/db";
+import { generateOpaqueToken } from "@/helpers/tokens";
 
 export const sendEmail = async (
   EmailType: string,
@@ -19,14 +19,15 @@ export const sendEmail = async (
 
     const resend = new Resend(process.env.RESEND_API_KEY as string);
 
-    const hashedUserId = await bcrypt.hash(userId, 10);
+    // Generate an unguessable random token; only its SHA-256 hash is stored.
+    const { rawToken, tokenHash } = generateOpaqueToken();
 
     if (EmailType === "VERIFY") {
       const user = await User.findById(userId);
       if (!user) {
         throw new Error("User not found");
       }
-      user.verificationToken = hashedUserId;
+      user.verificationToken = tokenHash;
       user.verificationTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
       await user.save();
     } else if (EmailType === "FORGOT_PASSWORD") {
@@ -34,7 +35,7 @@ export const sendEmail = async (
       if (!user) {
         throw new Error("User not found");
       }
-      user.forgetToken = hashedUserId;
+      user.forgetToken = tokenHash;
       user.forgetTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
       await user.save();
     }
@@ -46,7 +47,7 @@ export const sendEmail = async (
       react: EmailTemplate({
         emailType: EmailType,
         Subject: subject,
-        token: hashedUserId,
+        token: rawToken,
       }),
     });
 

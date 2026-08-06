@@ -10,7 +10,9 @@ export async function decodeToken(req: NextRequest) {
       const secret = new TextEncoder().encode(process.env.TOKEN_SECRET as string);
       const { payload: decoded } = await jwtVerify(token, secret);
 
-      if (decoded) {
+      // Only accept explicitly-typed access tokens, never a bare refresh token
+      // or a token that was signed without the access type claim.
+      if (decoded && decoded.type === "access") {
         return decoded;
       }
     } catch (error: any) {
@@ -25,7 +27,7 @@ export async function decodeToken(req: NextRequest) {
       );
       const { payload: decodedRefresh } = await jwtVerify(refreshToken, refreshSecret);
 
-      if (decodedRefresh?.userId) {
+      if (decodedRefresh?.userId && decodedRefresh.type === "refresh") {
         return decodedRefresh;
       }
     } catch (error: any) {

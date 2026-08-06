@@ -45,6 +45,58 @@ function toCreditsUsed(task: HistoryTask): number {
   return RESUME_TASK_CREDIT_COST[task];
 }
 
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const payload: any = await decodeToken(req);
+    const userId = payload?.userId;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please log in.", success: false },
+        { status: 401 }
+      );
+    }
+
+    const { id: rawId } = await context.params;
+    const parsedId = rawId.includes(":") ? rawId.split(":", 2) : ["resume", rawId];
+    const source = parsedId[0];
+    const id = parsedId[1];
+
+    if (!["resume", "jd"].includes(source) || !Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { error: "Invalid history id.", success: false },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+
+    const model: any = source === "jd" ? JdAnalysisModel : ResumeModel;
+    const result = await model.deleteOne({ _id: id, userId });
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { error: "History record not found.", success: false },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: true, deletedId: rawId },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    console.error("Delete resume history error:", error?.message || error);
+    return NextResponse.json(
+      { error: "Failed to delete history record.", success: false },
+      { status: 500 }
+    );
+  }
+}
+
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }

@@ -618,7 +618,7 @@ export default function JdAnalysisPage() {
             </SectionCard>
 
             {/* Generate improved CV CTA */}
-            {/* <section className="rounded-xl border border-rose-400/30 bg-rose-500/8 p-5 sm:p-6">
+            <section className="rounded-xl border border-rose-400/30 bg-rose-500/8 p-5 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
@@ -652,7 +652,7 @@ export default function JdAnalysisPage() {
                   )}
                 </Button>
               </div>
-            </section> */}
+            </section>
 
             {/* Meta footer */}
             <section className="rounded-xl border border-rose-500/20 bg-black/20 p-4 text-xs text-foreground/65">

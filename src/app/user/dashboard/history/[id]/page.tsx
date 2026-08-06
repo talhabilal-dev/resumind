@@ -372,8 +372,8 @@ export default function ResumeHistoryDetailPage() {
                   </p>
                 </article>
 
-                {/* <article className="glow-card rounded-xl bg-white/5 p-4">
-                  <p className="text-sm text-foreground/70">Improved CV</p>
+                <article className="glow-card rounded-xl bg-white/5 p-4">
+                  <p className="text-sm text-foreground/70">AI-Improved CV</p>
                   <button
                     type="button"
                     onClick={handleGenerateImprovedCv}
@@ -381,9 +381,9 @@ export default function ResumeHistoryDetailPage() {
                     className="mt-2 inline-flex items-center gap-2 rounded-md border border-rose-500/25 bg-rose-500/15 px-3 py-2 text-sm text-rose-100 hover:bg-rose-500/25 disabled:opacity-60"
                   >
                     <Download className="h-4 w-4" />
-                    {isGeneratingCv ? "Generating..." : "Generate Improved CV"}
+                    {isGeneratingCv ? "Generating..." : "Generate Improved CV PDF"}
                   </button>
-                </article> */}
+                </article>
               </section>
             ) : null}
 
@@ -618,10 +618,10 @@ export default function ResumeHistoryDetailPage() {
 
             <section className="rounded-xl border border-rose-500/20 bg-black/20 p-4 text-xs text-foreground/70">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-rose-300" />
+                <Download className="h-4 w-4 text-rose-300" />
                 <p>
-                  Export uses your browser print dialog. Choose "Save as PDF" to download this
-                  report as a PDF file.
+                  JD analyses can be exported as a formatted PDF using "Generate Improved CV PDF".
+                  The browser's print dialog remains available for the current view.
                 </p>
               </div>
             </section>

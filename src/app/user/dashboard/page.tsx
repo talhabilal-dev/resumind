@@ -49,6 +49,7 @@ const Page: React.FC = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [historyTotal, setHistoryTotal] = useState(0);
+  const [creditsSpent, setCreditsSpent] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -87,6 +88,14 @@ const Page: React.FC = () => {
         if (txRes.ok && Array.isArray(txPayload?.transactions)) {
           setTransactions(txPayload.transactions);
         }
+
+        if (
+          txRes.ok &&
+          txPayload?.totals &&
+          typeof txPayload.totals.used === "number"
+        ) {
+          setCreditsSpent(txPayload.totals.used);
+        }
       } catch {
         // Keep dashboard usable even if profile fetch fails.
       } finally {
@@ -109,16 +118,7 @@ const Page: React.FC = () => {
     return Math.round(total / validScores.length);
   })();
 
-  const spentCredits = transactions.reduce((acc, item) => {
-    if (item.type !== "usage") {
-      return acc;
-    }
-
-    const parsedAmount =
-      typeof item.amount === "number" ? item.amount : Number(item.amount);
-
-    return acc + (Number.isFinite(parsedAmount) ? parsedAmount : 0);
-  }, 0);
+  const spentCredits = creditsSpent;
 
   return (
     <>
@@ -167,10 +167,10 @@ const Page: React.FC = () => {
               hint: "Current balance",
             },
             {
-              label: "Credits Spent (Recent)",
+              label: "Credits Spent",
               value: String(spentCredits),
               icon: Sparkles,
-              hint: "From latest transactions page",
+              hint: "Lifetime usage across all transactions",
             },
           ].map((card) => (
             <article key={card.label} className="glow-card rounded-xl bg-white/5 p-4">
@@ -223,13 +223,23 @@ const Page: React.FC = () => {
             <div className="mt-4 space-y-3">
               {history.length === 0 ? (
                 <div className="rounded-lg border border-rose-500/15 bg-black/20 px-4 py-8 text-center text-sm text-foreground/70">
-                  No analysis history found yet.
+                  <p>No analysis history found yet.</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-3 border-rose-500/30 hover:bg-white/10"
+                    onClick={() => router.push("/user/dashboard/analyze")}
+                  >
+                    Run your first analysis
+                  </Button>
                 </div>
               ) : (
                 history.map((item) => (
-                  <div
+                  <button
+                    type="button"
                     key={item.id}
-                    className="flex items-center justify-between rounded-lg border border-rose-500/15 bg-black/20 px-4 py-3"
+                    onClick={() => router.push(`/user/dashboard/history/${item.id}`)}
+                    className="flex w-full items-center justify-between rounded-lg border border-rose-500/15 bg-black/20 px-4 py-3 text-left hover:bg-white/5"
                   >
                     <div>
                       <p className="font-medium text-foreground">{item.jobTitle}</p>
@@ -240,7 +250,7 @@ const Page: React.FC = () => {
                     <span className="rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-sm text-rose-200">
                       {typeof item.score === "number" ? `${item.score}/100` : "-"}
                     </span>
-                  </div>
+                  </button>
                 ))
               )}
             </div>
@@ -266,7 +276,7 @@ const Page: React.FC = () => {
               <li className="rounded-lg border border-rose-500/15 bg-black/20 px-3 py-2">
                 <button
                   type="button"
-                  onClick={() => router.push("/user/dashboard/pdf-analysis")}
+                  onClick={() => router.push("/user/dashboard/analyze")}
                   className="flex w-full items-center justify-between text-left"
                 >
                   <span className="inline-flex items-center gap-2">

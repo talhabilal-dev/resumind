@@ -30,29 +30,19 @@ type CreditPack = {
 // If backend changes, update here!
 const FEATURE_COSTS: CreditFeature[] = [
   {
-    name: "Full Resume Analysis",
+    name: "Resume Analysis",
     credits: 5,
-    proposition: "Detailed parsing, ATS score, actionable suggestions.",
+    proposition: "Full resume analysis with ATS score, section feedback and suggestions.",
   },
   {
-    name: "Job Description Match",
+    name: "CV + JD Analysis",
+    credits: 5,
+    proposition: "Matches your CV against a job description with ATS and JD-match scores.",
+  },
+  {
+    name: "Improved CV PDF",
     credits: 3,
-    proposition: "Alignment analysis for job fit.",
-  },
-  {
-    name: "Cover Letter Generator",
-    credits: 4,
-    proposition: "AI-generated cover letter tailored to your resume and job.",
-  },
-  {
-    name: "Bullet Point Optimization",
-    credits: 1,
-    proposition: "Improve individual resume bullet points for impact.",
-  },
-  {
-    name: "Full Resume Rewrite",
-    credits: 8,
-    proposition: "Complete rewrite for best practices and ATS optimization.",
+    proposition: "Download the AI-rewritten CV as a formatted PDF after a JD analysis.",
   },
 ];
 
@@ -251,12 +241,12 @@ const CreditsPageContent: React.FC = () => {
             <div>
               <h2 className="text-lg font-semibold text-foreground">How Credits Work</h2>
               <p className="mt-1 text-sm text-foreground/70">
-                Each feature below deducts credits from your balance when used. 1 credit = $0.10. Credits are non-refundable and valid for all resume tools.<br />Typical AI actions cost less than $0.03, so you get strong value per credit.
+                Each feature below deducts credits from your balance when used. 1 credit = $0.10. Credits are non-refundable and valid for all resume tools.
               </p>
             </div>
             <span className="inline-flex items-center rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-200">
               <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-              Stripe frontend ready
+              Secure Stripe checkout
             </span>
           </div>
         </section>

@@ -13,6 +13,20 @@ async function getAuthorizedUserId(req: NextRequest) {
   return userId;
 }
 
+function toSafeUser(user: any) {
+  return {
+    _id: user._id,
+    firstname: user.firstname,
+    lastname: user.lastname,
+    username: user.username,
+    email: user.email,
+    bio: user.bio || "",
+    isVerified: Boolean(user.isVerified),
+    credits: typeof user.credits === "number" ? user.credits : 0,
+    createdAt: user.createdAt,
+  };
+}
+
 export async function GET(req: NextRequest) {
   const userId = await getAuthorizedUserId(req);
 
@@ -32,7 +46,7 @@ export async function GET(req: NextRequest) {
         { status: 404 }
       );
     }
-    return NextResponse.json({ user, success: true }, { status: 200 });
+    return NextResponse.json({ user: toSafeUser(user), success: true }, { status: 200 });
   } catch (error: any) {
     console.error("Error fetching user profile:", error.message);
     return NextResponse.json(
@@ -101,7 +115,7 @@ export async function PATCH(req: NextRequest) {
       {
         message: "Profile updated successfully.",
         success: true,
-        user: updatedUser,
+        user: toSafeUser(updatedUser),
       },
       { status: 200 }
     );

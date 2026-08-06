@@ -5,12 +5,32 @@ import { NextResponse, NextRequest } from "next/server";
 import { SignJWT } from "jose";
 import { TokenData } from "@/types";
 import { signinSchema } from "@/schemas/userSchema";
+import { getClientIp, rateLimit } from "@/helpers/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
     const { email, password, rememberMe } = await req.json();
+
+    const ip = getClientIp(req);
+    // Per-IP and per-email limiting to slow username/credential brute force.
+    const ipLimit = rateLimit({ ip, limit: 60, windowSeconds: 60 });
+    if (!ipLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again later.", success: false },
+        { status: 429 }
+      );
+    }
+    if (email) {
+      const emailLimit = rateLimit({ ip, key: `login:${email}`, limit: 5, windowSeconds: 60 });
+      if (!emailLimit.allowed) {
+        return NextResponse.json(
+          { error: "Too many login attempts. Please try again later.", success: false },
+          { status: 429 }
+        );
+      }
+    }
 
     const { error } = signinSchema.safeParse({ email, password, rememberMe });
     if (error) {
@@ -65,13 +85,13 @@ export async function POST(req: NextRequest) {
       isVerified: user.isVerified as boolean,
     };
 
-    const token = await new SignJWT({ ...tokenData })
+    const token = await new SignJWT({ ...tokenData, type: "access" })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("1h") // Shorter-lived access token
       .sign(new TextEncoder().encode(process.env.TOKEN_SECRET));
 
-    const refreshToken = await new SignJWT({ userId: user._id.toString() })
+    const refreshToken = await new SignJWT({ userId: user._id.toString(), type: "refresh" })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime(rememberMe ? "30d" : "7d")

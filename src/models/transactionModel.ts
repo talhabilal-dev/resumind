@@ -29,6 +29,9 @@ const creditTransactionSchema = new Schema<ICreditTransaction>(
     { timestamps: true }
 )
 
+creditTransactionSchema.index({ userId: 1, createdAt: -1 })
+creditTransactionSchema.index({ userId: 1, type: 1 })
+
 export const CreditTransactionModel: Model<ICreditTransaction> =
     models.CreditTransaction
         ? (models.CreditTransaction as Model<ICreditTransaction>)

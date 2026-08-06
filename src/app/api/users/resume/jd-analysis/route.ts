@@ -9,9 +9,8 @@ import mammoth from "mammoth"
 import { decodeToken } from "@/helpers/decodeToken"
 import { connectDB } from "@/lib/db"
 import { computeAnalysisHash } from "@/lib/hash"
-import User from "@/models/userModel"
+import { deductCredits, refundCredits } from "@/helpers/credits"
 import { JdAnalysisModel } from "@/models/jdAnalysisModel"
-import { CreditTransactionModel } from "@/models/transactionModel"
 import {
   JdAnalysisOutputSchema,
   JdAnalysisApiRequestSchema,
@@ -73,6 +72,15 @@ export async function POST(req: NextRequest) {
 
   // ── Parse multipart form ──────────────────────────────────────────────────
   let formData: FormData
+  // Reject oversized bodies before parsing multipart form-data.
+  const contentLength = Number(req.headers.get("content-length") || "0")
+  if (contentLength > MAX_FILE_SIZE + 512 * 1024) {
+    return NextResponse.json(
+      { error: "File must be at most 5MB.", success: false },
+      { status: 413 }
+    )
+  }
+
   try {
     formData = await req.formData()
   } catch {
@@ -177,20 +185,27 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ── Credit check ──────────────────────────────────────────────────────────
-  const user = await User.findById(userId)
-  if (!user) {
-    return NextResponse.json(
-      { error: "User not found.", success: false },
-      { status: 404 }
-    )
-  }
-  if ((user.credits ?? 0) < JD_ANALYSIS_CREDIT_COST) {
+  // ── Credit deduction (atomic) ──────────────────────────────────────────────
+  const deduction = await deductCredits({
+    userId,
+    amount: JD_ANALYSIS_CREDIT_COST,
+    description: `JD CV analysis (${JD_ANALYSIS_CREDIT_COST} credits)${
+      jobTitle ? ` — ${jobTitle}` : ""
+    }`,
+  })
+
+  if (!deduction.success) {
+    if (deduction.reason === "user-not-found") {
+      return NextResponse.json(
+        { error: "User not found.", success: false },
+        { status: 404 }
+      )
+    }
     return NextResponse.json(
       {
         error: "Insufficient credits",
         message: `You need ${JD_ANALYSIS_CREDIT_COST} credits to analyse a CV.`,
-        credits: user.credits,
+        credits: deduction.creditsAvailable,
         required: JD_ANALYSIS_CREDIT_COST,
         success: false,
       },
@@ -238,6 +253,11 @@ Analyse the CV against the job description and return:
     tokensUsed = Math.round((cvText.length + jobDescription.length + 2000) / 4)
   } catch (err: any) {
     console.error("[jd-analysis] AI error:", err?.message || err)
+    await refundCredits({
+      userId,
+      amount: JD_ANALYSIS_CREDIT_COST,
+      description: `Refund for failed JD CV analysis`,
+    })
     return NextResponse.json(
       { error: "AI analysis failed. Please try again.", success: false },
       { status: 500 }
@@ -256,17 +276,6 @@ Analyse the CV against the job description and return:
     creditsCharged: JD_ANALYSIS_CREDIT_COST,
   })
 
-  // ── Deduct credits ────────────────────────────────────────────────────────
-  user.credits -= JD_ANALYSIS_CREDIT_COST
-  await user.save()
-
-  await CreditTransactionModel.create({
-    userId,
-    amount: JD_ANALYSIS_CREDIT_COST,
-    type: "usage",
-    description: `JD CV analysis (${JD_ANALYSIS_CREDIT_COST} credits)${jobTitle ? ` — ${jobTitle}` : ""}`,
-  })
-
   return NextResponse.json(
     {
       success: true,
@@ -277,7 +286,7 @@ Analyse the CV against the job description and return:
       analysis,
       meta: {
         creditsCharged: JD_ANALYSIS_CREDIT_COST,
-        creditsRemaining: user.credits,
+        creditsRemaining: deduction.creditsRemaining,
         cached: false,
         tokensUsed,
       },

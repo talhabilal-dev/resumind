@@ -100,13 +100,26 @@ export async function POST(req: NextRequest) {
         );
         didTransitionToCompleted = writeResult.modifiedCount > 0;
       } else {
-        await PaymentModel.create({
-          userId,
-          amount: amountUsd,
-          credits,
-          stripePaymentId: session.id,
-          status: "completed",
-        });
+        try {
+          await PaymentModel.create({
+            userId,
+            amount: amountUsd,
+            credits,
+            stripePaymentId: session.id,
+            status: "completed",
+          });
+        } catch (createError: any) {
+          if (createError?.code === 11000) {
+            const existing = await PaymentModel.findOne({ stripePaymentId: session.id });
+            if (existing?.status === "completed") {
+              return NextResponse.json(
+                { success: true, sessionId: session.id, status: "completed", credited: false },
+                { status: 200 }
+              );
+            }
+          }
+          throw createError;
+        }
         didTransitionToCompleted = true;
       }
 

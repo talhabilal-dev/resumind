@@ -31,6 +31,9 @@ const paymentSchema = new Schema<IPayment>(
     { timestamps: true }
 )
 
+paymentSchema.index({ stripePaymentId: 1 }, { unique: true })
+paymentSchema.index({ userId: 1, createdAt: -1 })
+
 export const PaymentModel: Model<IPayment> = models.Payment
     ? (models.Payment as Model<IPayment>)
     : model<IPayment>("Payment", paymentSchema)

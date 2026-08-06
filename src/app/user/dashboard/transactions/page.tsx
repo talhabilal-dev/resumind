@@ -35,6 +35,11 @@ const TransactionsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+  const [totals, setTotals] = useState<{ purchased: number; used: number; refunded: number }>({
+    purchased: 0,
+    used: 0,
+    refunded: 0,
+  });
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -51,6 +56,9 @@ const TransactionsPage: React.FC = () => {
         if (response.ok && Array.isArray(payload?.transactions)) {
           setTransactions(payload.transactions);
           setPagination(payload?.pagination || null);
+          if (payload?.totals) {
+            setTotals(payload.totals);
+          }
         }
       } finally {
         setLoading(false);
@@ -60,20 +68,10 @@ const TransactionsPage: React.FC = () => {
     fetchTransactions();
   }, [currentPage]);
 
-  const summary = useMemo(() => {
-    return transactions.reduce(
-      (acc, item) => {
-        if (item.type === "purchase" || item.type === "refund") {
-          acc.in += item.amount;
-        }
-        if (item.type === "usage") {
-          acc.out += item.amount;
-        }
-        return acc;
-      },
-      { in: 0, out: 0 }
-    );
-  }, [transactions]);
+  const summary = useMemo(
+    () => ({ in: totals.purchased + totals.refunded, out: totals.used }),
+    [totals]
+  );
 
   return (
     <>

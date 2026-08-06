@@ -7,7 +7,9 @@ import {
   CheckCircle2,
   CircleDashed,
   Coins,
+  Search,
   Sparkles,
+  Trash2,
   XCircle,
 } from "lucide-react";
 
@@ -72,6 +74,21 @@ const ResumeHistoryPage: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pagination, setPagination] = React.useState<PaginationMeta | null>(null);
+  const [search, setSearch] = React.useState("");
+  const [workflowFilter, setWorkflowFilter] = React.useState("");
+  const [sort, setSort] = React.useState("newest");
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+
+  const buildQuery = React.useCallback(() => {
+    const params = new URLSearchParams({
+      page: String(currentPage),
+      limit: String(PAGE_SIZE),
+      sort,
+    });
+    if (search.trim()) params.set("q", search.trim());
+    if (workflowFilter) params.set("workflow", workflowFilter);
+    return params.toString();
+  }, [currentPage, search, workflowFilter, sort]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -82,7 +99,7 @@ const ResumeHistoryPage: React.FC = () => {
 
       try {
         const responseWithPagination = await fetch(
-          `/api/users/resume/history?page=${currentPage}&limit=${PAGE_SIZE}`,
+          `/api/users/resume/history?${buildQuery()}`,
           {
           method: "GET",
           credentials: "include",
@@ -116,7 +133,31 @@ const ResumeHistoryPage: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [currentPage]);
+  }, [buildQuery]);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this history record? This cannot be undone.")) {
+      return;
+    }
+
+    setDeletingId(id);
+    setError(null);
+    try {
+      const response = await fetch(`/api/users/resume/history/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "Failed to delete record.");
+      }
+      setCurrentPage(1);
+    } catch (deleteError: any) {
+      setError(deleteError?.message || "Failed to delete record.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const totalCreditsUsed = historyData.reduce((acc, item) => {
     const parsedCredits =
@@ -146,7 +187,9 @@ const ResumeHistoryPage: React.FC = () => {
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <article className="glow-card rounded-xl bg-white/5 p-4">
             <p className="text-sm text-foreground/70">Total History Records</p>
-            <p className="mt-2 text-2xl font-bold text-foreground">{historyData.length}</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">
+              {pagination?.totalItems ?? historyData.length}
+            </p>
           </article>
 
           <article className="glow-card rounded-xl bg-white/5 p-4">
@@ -171,9 +214,47 @@ const ResumeHistoryPage: React.FC = () => {
           <p className="text-sm text-foreground/65">
             Includes job target, workflow, credits used, score and status. No file downloads.
           </p>
-          <p className="mt-1 text-xs text-foreground/55">
-            Page {pagination?.page || currentPage} of {pagination?.totalPages || 1}
-          </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/50" />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search by job title..."
+                className="w-full rounded-md border border-rose-500/20 bg-black/20 py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-foreground/50 focus:border-rose-500/50 focus:outline-none"
+              />
+            </label>
+
+            <select
+              value={workflowFilter}
+              onChange={(event) => {
+                setWorkflowFilter(event.target.value);
+                setCurrentPage(1);
+              }}
+              className="rounded-md border border-rose-500/20 bg-black/20 px-3 py-2 text-sm text-foreground focus:border-rose-500/50 focus:outline-none"
+            >
+              <option value="">All workflows</option>
+              <option value="resume">Resume Analysis</option>
+              <option value="jd">CV + JD Analysis</option>
+            </select>
+
+            <select
+              value={sort}
+              onChange={(event) => {
+                setSort(event.target.value);
+                setCurrentPage(1);
+              }}
+              className="rounded-md border border-rose-500/20 bg-black/20 px-3 py-2 text-sm text-foreground focus:border-rose-500/50 focus:outline-none"
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+          </div>
 
           <div className="mt-4 overflow-x-auto">
             {loading ? (
@@ -199,6 +280,7 @@ const ResumeHistoryPage: React.FC = () => {
                   <th className="px-3 py-2 text-foreground/65">Score</th>
                   <th className="px-3 py-2 text-foreground/65">Status</th>
                   <th className="px-3 py-2 text-foreground/65">Details</th>
+                  <th className="px-3 py-2 text-foreground/65">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -239,6 +321,18 @@ const ResumeHistoryPage: React.FC = () => {
                         >
                           View Details
                         </Link>
+                      </td>
+                      <td className="rounded-r-lg border-y border-r border-rose-500/15 px-3 py-3">
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item.id)}
+                          disabled={deletingId === item.id}
+                          className="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs text-red-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-label={`Delete ${item.jobTitle} history record`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          {deletingId === item.id ? "Deleting..." : "Delete"}
+                        </button>
                       </td>
                     </tr>
                   );

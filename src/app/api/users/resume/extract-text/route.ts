@@ -38,6 +38,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Reject oversized bodies before parsing multipart form-data.
+    const contentLength = Number(req.headers.get("content-length") || "0");
+    if (contentLength > MAX_RESUME_FILE_SIZE + 512 * 1024) {
+      return NextResponse.json(
+        { error: "Resume file must be at most 5MB.", success: false },
+        { status: 413 }
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get("resumeFile");
 

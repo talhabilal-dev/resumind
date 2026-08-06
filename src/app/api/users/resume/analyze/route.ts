@@ -10,6 +10,7 @@ import {
 import { runResumeAgent } from "@/services/resumeService"
 import { connectDB } from "@/lib/db"
 import { decodeToken } from "@/helpers/decodeToken"
+import { deductCredits, refundCredits } from "@/helpers/credits"
 import { ResumeModel } from "@/models/resumeModel"
 
 const InternalRequestBodySchema = AgentRequestSchema.extend({
@@ -126,6 +127,33 @@ export async function POST(req: NextRequest) {
 
     await connectDB()
 
+    const deduction = await deductCredits({
+      userId,
+      amount: RESUME_TASK_CREDIT_COST.full_resume_analysis,
+      description: `Resume analysis (${RESUME_TASK_CREDIT_COST.full_resume_analysis} credits)${
+        parsedApi.data.jobTitle ? ` — ${parsedApi.data.jobTitle}` : ""
+      }`
+    })
+
+    if (!deduction.success) {
+      if (deduction.reason === "user-not-found") {
+        return NextResponse.json(
+          { success: false, error: "User not found." },
+          { status: 404 }
+        )
+      }
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Insufficient credits",
+          message: `You need ${RESUME_TASK_CREDIT_COST.full_resume_analysis} credits to analyse a resume.`,
+          credits: deduction.creditsAvailable,
+          required: RESUME_TASK_CREDIT_COST.full_resume_analysis
+        },
+        { status: 402 }
+      )
+    }
+
     const result = await runResumeAgent({
       userId,
       request: parsed.data,
@@ -133,6 +161,11 @@ export async function POST(req: NextRequest) {
     })
 
     if (!result.success || !result.output) {
+      await refundCredits({
+        userId,
+        amount: RESUME_TASK_CREDIT_COST.full_resume_analysis,
+        description: `Refund for failed resume analysis`
+      })
       return NextResponse.json(
         { success: false, error: result.error || "Resume analysis failed." },
         { status: 500 }
@@ -166,7 +199,8 @@ export async function POST(req: NextRequest) {
         task: "full_resume_analysis",
         data: frontendData,
         credits: {
-          charged: frontendData.cost.creditsCharged
+          charged: frontendData.cost.creditsCharged,
+          remaining: deduction.creditsRemaining
         },
         output: result.output,
         resumeId: result.resumeId,

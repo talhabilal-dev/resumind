@@ -3,6 +3,7 @@ import User from "@/models/userModel";
 import { NextResponse, NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { resetPasswordSchema } from "@/schemas/userSchema";
+import { hashToken } from "@/helpers/tokens";
 
 const EMAIL_SUBJECT = "Password Reset Verification";
 export async function POST(req: NextRequest) {
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     // Find user by verification token
     const user = await User.findOne({
-      forgetToken: token,
+      forgetToken: hashToken(String(token)),
       forgetTokenExpiry: { $gt: new Date() }, // Check if token is still valid
     });
 

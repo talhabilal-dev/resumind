@@ -32,12 +32,38 @@ export async function GET(req: NextRequest) {
     const totalItems = await CreditTransactionModel.countDocuments({ userId });
     const totalPages = Math.max(1, Math.ceil(totalItems / limit));
 
-    const transactions = await CreditTransactionModel.find({ userId })
-      .sort({ createdAt: -1 })
-      .select("amount type description createdAt")
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const [transactions, totals] = await Promise.all([
+      CreditTransactionModel.find({ userId })
+        .sort({ createdAt: -1 })
+        .select("amount type description createdAt")
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      CreditTransactionModel.aggregate<{
+        _id: null;
+        purchased: number;
+        used: number;
+        refunded: number;
+      }>([
+        { $match: { userId } },
+        {
+          $group: {
+            _id: null,
+            purchased: {
+              $sum: { $cond: [{ $eq: ["$type", "purchase"] }, { $abs: "$amount" }, 0] },
+            },
+            used: {
+              $sum: { $cond: [{ $eq: ["$type", "usage"] }, { $abs: "$amount" }, 0] },
+            },
+            refunded: {
+              $sum: { $cond: [{ $eq: ["$type", "refund"] }, { $abs: "$amount" }, 0] },
+            },
+          },
+        },
+      ]),
+    ]);
+
+    const totalsRow = totals[0] ?? { purchased: 0, used: 0, refunded: 0 };
 
     const normalizedTransactions = transactions.map((transaction: any) => {
       const parsedAmount = Number(transaction?.amount);
@@ -52,6 +78,11 @@ export async function GET(req: NextRequest) {
       {
         success: true,
         transactions: normalizedTransactions,
+        totals: {
+          purchased: totalsRow.purchased,
+          used: totalsRow.used,
+          refunded: totalsRow.refunded,
+        },
         pagination: {
           page,
           limit,

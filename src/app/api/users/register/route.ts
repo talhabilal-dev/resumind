@@ -4,12 +4,22 @@ import { NextResponse, NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "@/helpers/mailer";
 import { signupSchema } from "@/schemas/userSchema";
+import { getClientIp, rateLimit } from "@/helpers/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
     const { firstname, lastname, username, email, password } = await req.json();
+
+    const ip = getClientIp(req);
+    const ipLimit = rateLimit({ ip, key: "register", limit: 5, windowSeconds: 600 });
+    if (!ipLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many sign-up attempts. Please try again later.", success: false },
+        { status: 429 }
+      );
+    }
 
     // Validate input
     const { error } = signupSchema.safeParse({

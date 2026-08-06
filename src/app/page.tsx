@@ -139,27 +139,27 @@ export default function Home() {
                 window.location.hash = 'features';
               }}
             >
-              Watch Demo
+              Explore Features
             </Button>
           </div>
 
           {/* Hero Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-12 border-t border-purple-500/10">
             <div>
-              <p className="text-2xl md:text-3xl font-bold gradient-text">50K+</p>
-              <p className="text-sm text-foreground/60">Resumes Analyzed</p>
+              <p className="text-2xl md:text-3xl font-bold gradient-text">5 credits</p>
+              <p className="text-sm text-foreground/60">per Resume Analysis</p>
             </div>
             <div>
-              <p className="text-2xl md:text-3xl font-bold gradient-text">92%</p>
-              <p className="text-sm text-foreground/60">Success Rate</p>
+              <p className="text-2xl md:text-3xl font-bold gradient-text">4 modules</p>
+              <p className="text-sm text-foreground/60">Scored by our AI</p>
             </div>
             <div>
-              <p className="text-2xl md:text-3xl font-bold gradient-text">4.9★</p>
-              <p className="text-sm text-foreground/60">User Rating</p>
+              <p className="text-2xl md:text-3xl font-bold gradient-text">ATS + JD</p>
+              <p className="text-sm text-foreground/60">Matching insights</p>
             </div>
             <div>
-              <p className="text-2xl md:text-3xl font-bold gradient-text">5min</p>
-              <p className="text-sm text-foreground/60">Average Time</p>
+              <p className="text-2xl md:text-3xl font-bold gradient-text">PDF export</p>
+              <p className="text-sm text-foreground/60">Improved CV download</p>
             </div>
           </div>
         </div>
@@ -211,17 +211,17 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                Why Thousands Choose <span className="gradient-text">Resumind</span>
+                            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                Why Job Seekers Choose <span className="gradient-text">Resumind</span>
               </h2>
               <div className="space-y-4">
                 {[
-                  'Get hired 3x faster with AI-optimized resumes',
-                  'Beat ATS systems and land interviews',
-                  'Industry-specific recommendations',
-                  'Real-time feedback as you type',
-                  'Compare with top-performing resumes',
-                  'Export in multiple formats instantly',
+                  'ATS-friendly, job-targeted resume content',
+                  'Beat ATS filters with missing-keyword detection',
+                  'Role-specific recommendations',
+                  'Immediate, structured AI feedback',
+                  'Scores across summary, content, structure and skills',
+                  'Export your AI-improved CV as a PDF',
                 ].map((benefit, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0" />
@@ -259,25 +259,78 @@ export default function Home() {
             <p className="text-lg text-foreground/60">Choose the credits that work for you</p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
-            {/* Credit Package */}
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            {/* Starter Pack */}
             <div className="glow-card rounded-lg p-8 group hover:bg-white/10 transition duration-300">
               <div className="mb-6">
-                <p className="text-4xl font-bold mb-2">$1</p>
-                <p className="text-foreground/70">5 Credits</p>
+                <p className="text-sm text-purple-400 font-medium uppercase tracking-wide">Starter</p>
+                <p className="text-4xl font-bold mb-2">$5</p>
+                <p className="text-foreground/70">50 Credits</p>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0" />
-                  <span className="text-foreground/80">1 Resume Analyses</span>
+                  <span className="text-foreground/80">Up to 10 resume analyses</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0" />
-                  <span className="text-foreground/80">Instant Feedback</span>
+                  <span className="text-foreground/80">Instant AI feedback</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0" />
-                  <span className="text-foreground/80">Never Expires</span>
+                  <span className="text-foreground/80">Never expires</span>
+                </li>
+              </ul>
+              <Button className="w-full gradient-accent border-0" onClick={() => router.push('/user/register')}>
+                Buy Credits
+              </Button>
+            </div>
+
+            {/* Growth Pack */}
+            <div className="glow-card rounded-lg p-8 bg-white/5 border-2 border-purple-500/30">
+              <div className="mb-6">
+                <p className="text-sm text-purple-400 font-medium uppercase tracking-wide">Growth · Popular</p>
+                <p className="text-4xl font-bold mt-2">$15</p>
+                <p className="text-foreground/70">150 Credits</p>
+              </div>
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0" />
+                  <span className="text-foreground/80">Up to 30 resume analyses</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0" />
+                  <span className="text-foreground/80">Improved CV PDF exports</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0" />
+                  <span className="text-foreground/80">Best value for active job seekers</span>
+                </li>
+              </ul>
+              <Button className="w-full gradient-accent border-0" onClick={() => router.push('/user/register')}>
+                Buy Credits
+              </Button>
+            </div>
+
+            {/* Pro Pack */}
+            <div className="glow-card rounded-lg p-8 group hover:bg-white/10 transition duration-300">
+              <div className="mb-6">
+                <p className="text-sm text-purple-400 font-medium uppercase tracking-wide">Pro</p>
+                <p className="text-4xl font-bold mt-2">$40</p>
+                <p className="text-foreground/70">400 Credits</p>
+              </div>
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0" />
+                  <span className="text-foreground/80">Up to 80 resume analyses</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0" />
+                  <span className="text-foreground/80">All features included</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0" />
+                  <span className="text-foreground/80">Lowest per-credit cost</span>
                 </li>
               </ul>
               <Button className="w-full gradient-accent border-0" onClick={() => router.push('/user/register')}>
@@ -286,28 +339,28 @@ export default function Home() {
             </div>
 
             {/* Cost Breakdown */}
-            <div className="glow-card rounded-lg p-8 bg-white/5 border-2 border-purple-500/30">
-              <h3 className="text-xl font-bold mb-6">Cost Breakdown</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-foreground/70">1 Resume Analysis</span>
-                  <span className="font-semibold">5 Credits</span>
+            <div className="glow-card rounded-lg p-8 bg-white/5 md:col-span-3">
+              <h3 className="text-xl font-bold mb-6">How Credits Work</h3>
+              <div className="grid sm:grid-cols-3 gap-6">
+                <div>
+                  <p className="text-foreground/70">Resume Analysis</p>
+                  <p className="mt-1 text-lg font-semibold">5 credits</p>
+                  <p className="text-sm text-purple-400 mt-1">= $0.50 at the Growth rate</p>
                 </div>
-                <div className="border-t border-purple-500/10 pt-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-foreground/70">5 Credits Package</span>
-                    <span className="font-semibold">$1</span>
-                  </div>
-                  <p className="text-sm text-purple-400 mt-2">= $0.20 per credit</p>
+                <div>
+                  <p className="text-foreground/70">CV + JD Analysis</p>
+                  <p className="mt-1 text-lg font-semibold">5 credits</p>
+                  <p className="text-sm text-purple-400 mt-1">Includes ATS &amp; JD match scores</p>
                 </div>
-                <div className="border-t border-purple-500/10 pt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-foreground/70">You can analyze</span>
-                    <span className="font-bold gradient-text">1 Resume</span>
-                  </div>
-              
+                <div>
+                  <p className="text-foreground/70">Improved CV PDF</p>
+                  <p className="mt-1 text-lg font-semibold">3 credits</p>
+                  <p className="text-sm text-purple-400 mt-1">Downloadable after JD analysis</p>
                 </div>
               </div>
+              <p className="mt-6 border-t border-purple-500/10 pt-4 text-sm text-foreground/60">
+                Every account starts with 10 free credits — no credit card required.
+              </p>
             </div>
           </div>
 
@@ -335,7 +388,7 @@ export default function Home() {
               Ready to Transform Your Resume?
             </h2>
             <p className="text-lg text-foreground/70 mb-8 max-w-2xl mx-auto">
-              Join thousands of job seekers who have already improved their resumes and landed their dream jobs with Resumind.
+              Improve your resume with instant AI analysis and job-targeted feedback in minutes.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button
@@ -369,23 +422,23 @@ export default function Home() {
               <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-sm text-foreground/60">
                 <li><a href="#features" className="hover:text-foreground transition">Features</a></li>
+                <li><a href="#benefits" className="hover:text-foreground transition">Benefits</a></li>
                 <li><a href="#pricing" className="hover:text-foreground transition">Pricing</a></li>
-                <li><a href="#benefits" className="hover:text-foreground transition">FAQ</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Company</h4>
+              <h4 className="font-semibold mb-4">Get Started</h4>
               <ul className="space-y-2 text-sm text-foreground/60">
-                <li><a href="#benefits" className="hover:text-foreground transition">About</a></li>
-                <li><a href="#features" className="hover:text-foreground transition">Blog</a></li>
+                <li><a href="/user/register" className="hover:text-foreground transition">Create Account</a></li>
+                <li><a href="/user/login" className="hover:text-foreground transition">Sign In</a></li>
                 <li><a href="mailto:support@resumind.app" className="hover:text-foreground transition">Contact</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
+              <h4 className="font-semibold mb-4">Supported by</h4>
               <ul className="space-y-2 text-sm text-foreground/60">
-                <li><a href="/" className="hover:text-foreground transition">Privacy</a></li>
-                <li><a href="/" className="hover:text-foreground transition">Terms</a></li>
+                <li>Powered by advanced AI</li>
+                <li>Secure, credit-based billing via Stripe</li>
               </ul>
             </div>
           </div>

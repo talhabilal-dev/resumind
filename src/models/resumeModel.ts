@@ -190,6 +190,8 @@ const resumeSchema = new Schema<IResume>(
     }
 )
 
+resumeSchema.index({ userId: 1, createdAt: -1 })
+
 export const ResumeModel: Model<IResume> =
     models.Resume
         ? (models.Resume as Model<IResume>)
