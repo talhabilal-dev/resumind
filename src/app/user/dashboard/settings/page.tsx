@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import SavedCardSection from "@/components/SavedCardSection";
 import {
   changePasswordSchema,
   deleteAccountSchema,
@@ -76,11 +77,12 @@ const SettingsPage: React.FC = () => {
           email: profile.email || "",
         });
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : "Unable to load profile.";
+        const message =
+          error instanceof Error ? error.message : "Unable to load profile.";
         toast({
           title: "Error",
           description: message,
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         setIsLoadingProfile(false);
@@ -101,8 +103,9 @@ const SettingsPage: React.FC = () => {
     if (!parsed.success) {
       toast({
         title: "Error",
-        description: parsed.error.issues[0]?.message || "Please fix form errors.",
-        variant: "destructive"
+        description:
+          parsed.error.issues[0]?.message || "Please fix form errors.",
+        variant: "destructive",
       });
       return;
     }
@@ -125,14 +128,15 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Success",
         description: "Profile updated successfully.",
-        variant: "default"
+        variant: "default",
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Unable to update profile.";
+      const message =
+        error instanceof Error ? error.message : "Unable to update profile.";
       toast({
         title: "Error",
         description: message,
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsSaving(false);
@@ -148,8 +152,9 @@ const SettingsPage: React.FC = () => {
     if (!parsed.success) {
       toast({
         title: "Error",
-        description: parsed.error.issues[0]?.message || "Invalid password form.",
-        variant: "destructive"
+        description:
+          parsed.error.issues[0]?.message || "Invalid password form.",
+        variant: "destructive",
       });
       return;
     }
@@ -158,7 +163,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Error",
         description: "Please confirm your new password.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -167,7 +172,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Error",
         description: "New password and confirmation do not match.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -176,7 +181,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Error",
         description: "New password must be different from current password.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -199,7 +204,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Success",
         description: "Password changed successfully.",
-        variant: "default"
+        variant: "default",
       });
       setPasswordForm({
         currentPassword: "",
@@ -212,7 +217,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Error",
         description: message,
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsChangingPassword(false);
@@ -228,7 +233,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Error",
         description: parsed.error.issues[0]?.message || "Invalid confirmation.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -251,15 +256,16 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Success",
         description: "Account deleted successfully.",
-        variant: "default"
+        variant: "default",
       });
       router.push("/user/register");
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Unable to delete account.";
+      const message =
+        error instanceof Error ? error.message : "Unable to delete account.";
       toast({
         title: "Error",
         description: message,
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsDeleting(false);
@@ -273,8 +279,12 @@ const SettingsPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <SidebarTrigger className="border border-rose-500/20 bg-white/5 hover:bg-white/10" />
             <div>
-              <h1 className="text-xl font-bold text-foreground sm:text-2xl">Profile Settings</h1>
-              <p className="text-sm text-foreground/65">Update your profile details and manage account access.</p>
+              <h1 className="text-xl font-bold text-foreground sm:text-2xl">
+                Profile Settings
+              </h1>
+              <p className="text-sm text-foreground/65">
+                Update your profile details and manage account access.
+              </p>
             </div>
           </div>
 
@@ -291,48 +301,89 @@ const SettingsPage: React.FC = () => {
 
       <main className="p-4 sm:p-6">
         <section className="mb-6 rounded-xl glow-card bg-white/5 p-5">
-          <h2 className="text-lg font-semibold text-foreground">Update Profile</h2>
-          <p className="mt-1 text-sm text-foreground/65">You can edit your name, username, and bio. Email is read-only.</p>
+          <h2 className="text-lg font-semibold text-foreground">
+            Update Profile
+          </h2>
+          <p className="mt-1 text-sm text-foreground/65">
+            You can edit your name, username, and bio. Email is read-only.
+          </p>
 
           {isLoadingProfile ? (
-            <p className="mt-4 text-sm text-foreground/60">Loading profile...</p>
+            <p className="mt-4 text-sm text-foreground/60">
+              Loading profile...
+            </p>
           ) : (
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="firstname" className="mb-1 block text-sm text-foreground/80">First Name</label>
+                <label
+                  htmlFor="firstname"
+                  className="mb-1 block text-sm text-foreground/80"
+                >
+                  First Name
+                </label>
                 <input
                   id="firstname"
                   value={formData.firstname}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, firstname: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      firstname: e.target.value,
+                    }))
+                  }
                   className="w-full rounded-lg border border-rose-500/25 bg-white/5 px-4 py-2.5 text-foreground placeholder:text-foreground/40 outline-none transition focus:ring-2 focus:ring-rose-400/40"
                   placeholder="First name"
                 />
               </div>
 
               <div>
-                <label htmlFor="lastname" className="mb-1 block text-sm text-foreground/80">Last Name</label>
+                <label
+                  htmlFor="lastname"
+                  className="mb-1 block text-sm text-foreground/80"
+                >
+                  Last Name
+                </label>
                 <input
                   id="lastname"
                   value={formData.lastname}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, lastname: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      lastname: e.target.value,
+                    }))
+                  }
                   className="w-full rounded-lg border border-rose-500/25 bg-white/5 px-4 py-2.5 text-foreground placeholder:text-foreground/40 outline-none transition focus:ring-2 focus:ring-rose-400/40"
                   placeholder="Last name"
                 />
               </div>
 
               <div>
-                <label htmlFor="username" className="mb-1 block text-sm text-foreground/80">Username</label>
+                <label
+                  htmlFor="username"
+                  className="mb-1 block text-sm text-foreground/80"
+                >
+                  Username
+                </label>
                 <input
                   id="username"
                   value={formData.username}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      username: e.target.value,
+                    }))
+                  }
                   className="w-full rounded-lg border border-rose-500/25 bg-white/5 px-4 py-2.5 text-foreground placeholder:text-foreground/40 outline-none transition focus:ring-2 focus:ring-rose-400/40"
                   placeholder="Username"
                 />
               </div>
 
               <div>
-                <label htmlFor="email" className="mb-1 block text-sm text-foreground/80">Email (read-only)</label>
+                <label
+                  htmlFor="email"
+                  className="mb-1 block text-sm text-foreground/80"
+                >
+                  Email (read-only)
+                </label>
                 <input
                   id="email"
                   value={formData.email}
@@ -342,17 +393,26 @@ const SettingsPage: React.FC = () => {
               </div>
 
               <div className="sm:col-span-2">
-                <label htmlFor="bio" className="mb-1 block text-sm text-foreground/80">Bio</label>
+                <label
+                  htmlFor="bio"
+                  className="mb-1 block text-sm text-foreground/80"
+                >
+                  Bio
+                </label>
                 <textarea
                   id="bio"
                   value={formData.bio}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, bio: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, bio: e.target.value }))
+                  }
                   rows={4}
                   maxLength={160}
                   className="w-full rounded-lg border border-rose-500/25 bg-white/5 px-4 py-2.5 text-foreground placeholder:text-foreground/40 outline-none transition focus:ring-2 focus:ring-rose-400/40"
                   placeholder="Tell us about your role focus in 160 characters"
                 />
-                <p className="mt-1 text-xs text-foreground/55">{formData.bio.length}/160</p>
+                <p className="mt-1 text-xs text-foreground/55">
+                  {formData.bio.length}/160
+                </p>
               </div>
 
               <div className="sm:col-span-2 flex justify-end">
@@ -371,19 +431,31 @@ const SettingsPage: React.FC = () => {
         </section>
 
         <section className="mb-6 rounded-xl glow-card bg-white/5 p-5">
-          <h2 className="text-lg font-semibold text-foreground">Change Password</h2>
-          <p className="mt-1 text-sm text-foreground/65">Update your password to keep your account secure.</p>
+          <h2 className="text-lg font-semibold text-foreground">
+            Change Password
+          </h2>
+          <p className="mt-1 text-sm text-foreground/65">
+            Update your password to keep your account secure.
+          </p>
 
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label htmlFor="currentPassword" className="mb-1 block text-sm text-foreground/80">Current Password</label>
+              <label
+                htmlFor="currentPassword"
+                className="mb-1 block text-sm text-foreground/80"
+              >
+                Current Password
+              </label>
               <div className="relative">
                 <input
                   id="currentPassword"
                   type={showCurrentPassword ? "text" : "password"}
                   value={passwordForm.currentPassword}
                   onChange={(e) =>
-                    setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      currentPassword: e.target.value,
+                    }))
                   }
                   className="w-full rounded-lg border border-rose-500/25 bg-white/5 px-4 py-2.5 pr-11 text-foreground placeholder:text-foreground/40 outline-none transition focus:ring-2 focus:ring-rose-400/40"
                   placeholder="Current password"
@@ -393,20 +465,32 @@ const SettingsPage: React.FC = () => {
                   onClick={() => setShowCurrentPassword((prev) => !prev)}
                   className="absolute inset-y-0 right-0 flex items-center pr-3 text-foreground/60 hover:text-foreground"
                 >
-                  {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showCurrentPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
 
             <div>
-              <label htmlFor="newPassword" className="mb-1 block text-sm text-foreground/80">New Password</label>
+              <label
+                htmlFor="newPassword"
+                className="mb-1 block text-sm text-foreground/80"
+              >
+                New Password
+              </label>
               <div className="relative">
                 <input
                   id="newPassword"
                   type={showNewPassword ? "text" : "password"}
                   value={passwordForm.newPassword}
                   onChange={(e) =>
-                    setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      newPassword: e.target.value,
+                    }))
                   }
                   className="w-full rounded-lg border border-rose-500/25 bg-white/5 px-4 py-2.5 pr-11 text-foreground placeholder:text-foreground/40 outline-none transition focus:ring-2 focus:ring-rose-400/40"
                   placeholder="At least 6 characters"
@@ -416,20 +500,32 @@ const SettingsPage: React.FC = () => {
                   onClick={() => setShowNewPassword((prev) => !prev)}
                   className="absolute inset-y-0 right-0 flex items-center pr-3 text-foreground/60 hover:text-foreground"
                 >
-                  {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showNewPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="mb-1 block text-sm text-foreground/80">Confirm New Password</label>
+              <label
+                htmlFor="confirmPassword"
+                className="mb-1 block text-sm text-foreground/80"
+              >
+                Confirm New Password
+              </label>
               <div className="relative">
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   value={passwordForm.confirmPassword}
                   onChange={(e) =>
-                    setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      confirmPassword: e.target.value,
+                    }))
                   }
                   className="w-full rounded-lg border border-rose-500/25 bg-white/5 px-4 py-2.5 pr-11 text-foreground placeholder:text-foreground/40 outline-none transition focus:ring-2 focus:ring-rose-400/40"
                   placeholder="Confirm new password"
@@ -439,7 +535,11 @@ const SettingsPage: React.FC = () => {
                   onClick={() => setShowConfirmPassword((prev) => !prev)}
                   className="absolute inset-y-0 right-0 flex items-center pr-3 text-foreground/60 hover:text-foreground"
                 >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -458,17 +558,30 @@ const SettingsPage: React.FC = () => {
         </section>
 
         <section className="mb-6 rounded-xl glow-card bg-white/5 p-5">
+          <h2 className="text-lg font-semibold text-foreground">
+            Payment Method
+          </h2>
+          <p className="mt-1 text-sm text-foreground/65">
+            View, copy, or update the saved card used for credit checkouts.
+          </p>
+          <SavedCardSection />
+        </section>
+
+        <section className="mb-6 rounded-xl glow-card bg-white/5 p-5">
           <h2 className="text-lg font-semibold text-foreground">Billing</h2>
           <p className="mt-1 text-sm text-foreground/65">
-            Resumind does not store card details. Payments are processed securely by Stripe
-            during each checkout.
+            Buy credit packs for resume tools using your saved test card.
+            Payments are processed securely by Stripe during each checkout.
           </p>
 
           <div className="mt-4 flex flex-col gap-3 rounded-lg border border-rose-500/25 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-foreground">Buy credit packs</p>
+              <p className="text-sm font-medium text-foreground">
+                Buy credit packs
+              </p>
               <p className="text-sm text-foreground/70">
-                One-time credit purchases via Stripe-hosted checkout. No subscription or saved card.
+                One-time credit purchases via Stripe-hosted checkout. No
+                subscription or saved card.
               </p>
             </div>
             <Button
@@ -493,7 +606,10 @@ const SettingsPage: React.FC = () => {
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
-              <label htmlFor="deleteConfirmation" className="mb-1 block text-sm text-red-100/90">
+              <label
+                htmlFor="deleteConfirmation"
+                className="mb-1 block text-sm text-red-100/90"
+              >
                 Type <span className="font-semibold">DELETE</span> to confirm
               </label>
               <input

@@ -17,6 +17,12 @@ export interface IUser extends Document {
   verificationTokenExpiry?: Date;
   refreshToken?: string;
   credits: number;
+  savedCard?: {
+    cardNumber: string;
+    expiryMonth: number;
+    expiryYear: number;
+    cvc: string;
+  };
 }
 
 const userSchema = new Schema<IUser>({
@@ -92,7 +98,29 @@ const userSchema = new Schema<IUser>({
   },
   credits: {
     type: Number,
-    default: 10 // signup bonus
+    default: 10, // signup bonus
+  },
+  savedCard: {
+    cardNumber: {
+      type: String,
+      required: false,
+      default: "4242424242424242",
+    },
+    expiryMonth: {
+      type: Number,
+      required: false,
+      default: new Date().getMonth() + 1,
+    },
+    expiryYear: {
+      type: Number,
+      required: false,
+      default: new Date().getFullYear() + 2,
+    },
+    cvc: {
+      type: String,
+      required: false,
+      default: "123",
+    },
   },
   createdAt: {
     type: Date,

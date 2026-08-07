@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   if (!stripeSecretKey) {
     return NextResponse.json(
       { error: "STRIPE_SECRET_KEY is not configured.", success: false },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized. Please log in.", success: false },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -36,8 +36,11 @@ export async function POST(req: NextRequest) {
     const parsed = creditCheckoutRequestSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message || "Invalid checkout request.", success: false },
-        { status: 400 }
+        {
+          error: parsed.error.issues[0]?.message || "Invalid checkout request.",
+          success: false,
+        },
+        { status: 400 },
       );
     }
 
@@ -47,12 +50,14 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: "User not found.", success: false },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const pack = CREDIT_PACK_CONFIG[parsed.data.packId];
-    const origin = req.nextUrl.origin;
+    const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL;
+    const origin = configuredOrigin || req.nextUrl.origin;
+    const baseUrl = origin.replace(/\/$/, "");
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -77,8 +82,8 @@ export async function POST(req: NextRequest) {
         credits: String(pack.credits),
         amountCents: String(pack.amountCents),
       },
-      success_url: `${origin}/user/dashboard/credits/verify?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/user/dashboard/credits/verify?canceled=1&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${baseUrl}/user/dashboard/credits/verify?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/user/dashboard/credits/verify?canceled=1&session_id={CHECKOUT_SESSION_ID}`,
     });
 
     await PaymentModel.create({
@@ -91,13 +96,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       { success: true, checkoutUrl: session.url },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Create checkout session error:", error.message);
     return NextResponse.json(
       { error: "Unable to start Stripe checkout.", success: false },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
