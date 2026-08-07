@@ -218,7 +218,10 @@ export default function Home() {
 
   const goTo = (hash: string) => () => {
     setIsMenuOpen(false);
-    window.location.hash = hash;
+    const el = document.querySelector(hash);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
@@ -375,63 +378,95 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-36 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto text-center">
-          <div className="mb-7 inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-rose-500/20 rounded-full backdrop-blur-sm">
-            <Sparkles className="w-4 h-4 text-rose-300" />
-            <span className="text-sm text-foreground/85">Powered by advanced AI resume analysis</span>
-          </div>
+      <section className="relative flex flex-col justify-center pt-24 pb-12 px-4 sm:px-6 lg:min-h-screen lg:pt-32 lg:pb-14 lg:px-8">
+        {/* decorative orbs */}
+        <div className="pointer-events-none absolute top-1/2 -left-40 -translate-y-1/2 h-96 w-96 rounded-full bg-rose-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute top-24 right-0 h-80 w-80 rounded-full bg-pink-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-linear-to-b from-rose-900/30 to-transparent" />
 
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-balance leading-[1.05]">
-            <span className="text-foreground">Your Resume,</span>
-            <br />
-            <span className="gradient-text">Supercharged</span>
-            <span className="text-foreground"> by AI</span>
-          </h1>
-
-          <p className="text-lg md:text-xl text-foreground/70 mb-10 text-balance max-w-3xl mx-auto leading-relaxed">
-            Turn your resume into an ATS-winning, job-targeted document. Get instant AI analysis, precise
-            JD match scores, and improvements you can download and use in minutes.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
-            <Button
-              size="lg"
-              className="group gradient-accent border-0 text-lg px-8 h-14 shadow-xl shadow-rose-600/40 hover:shadow-rose-500/50 hover:scale-[1.02] transition-all"
-              onClick={() => router.push('/user/register')}
-            >
-              Analyze Your Resume Free
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition" />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="group border border-rose-500/30 text-lg px-8 h-14 hover:bg-white/5"
-              onClick={() => goTo('#features')}
-            >
-              Explore Features
-              <ChevronRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition" />
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-2xl border border-rose-500/15 bg-white/5 pt-0">
-            {[
-              { value: '5 credits', label: 'per Resume Analysis' },
-              { value: '4 modules', label: 'Scored by our AI' },
-              { value: 'ATS + JD', label: 'Matching insights' },
-              { value: 'PDF export', label: 'Improved CV download' },
-            ].map((s) => (
-              <div key={s.label} className="bg-background/60 p-6 text-center">
-                <p className="text-2xl font-bold gradient-text">{s.value}</p>
-                <p className="mt-1 text-sm text-foreground/60">{s.label}</p>
+        <div className="relative max-w-7xl mx-auto w-full flex-1 flex items-center">
+          <div className="grid w-full gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16 items-center">
+            {/* Left: copy + CTAs */}
+            <div className="max-w-xl">
+              <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-rose-500/20 rounded-full backdrop-blur-sm shadow-lg shadow-rose-950/10">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-400" />
+                </span>
+                <Sparkles className="w-4 h-4 text-rose-300" />
+                <span className="text-sm text-foreground/85">Powered by advanced AI resume analysis</span>
               </div>
-            ))}
+
+              <h1 className="relative text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-balance leading-[1.05]">
+                <span className="text-foreground">Your Resume,</span>
+                <br className="hidden sm:block" />
+                <span className="gradient-text drop-shadow-[0_0_25px_rgba(244,63,94,0.45)]">Supercharged</span>
+                <span className="text-foreground"> by AI</span>
+              </h1>
+
+              <p className="mt-6 text-lg md:text-xl text-foreground/70 text-balance leading-relaxed">
+                Turn your resume into an ATS-winning, job-targeted document. Get instant AI analysis, precise
+                JD match scores, and improvements you can download and use in minutes.
+              </p>
+
+              <div className="mt-9 flex flex-col sm:flex-row items-start gap-4">
+                <Button
+                  size="lg"
+                  className="group relative flex-1 w-full gradient-accent border-0 text-lg px-8 h-24 shadow-xl shadow-rose-600/40 hover:shadow-rose-500/60 hover:scale-[1.03] transition-all overflow-hidden"
+                  onClick={() => router.push('/user/register')}
+                >
+                  <span className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700" />
+                  <span className="relative">Analyze Your Resume Free</span>
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 relative transition" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="group flex-1 w-full border border-rose-500/30 text-lg px-8 h-14 hover:bg-white/5 hover:border-rose-500/50 transition-all"
+                  onClick={() => goTo('#features')}
+                >
+                  Explore Features
+                  <ChevronRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Right: stat cards */}
+            <div className="relative">
+              <div className="pointer-events-none absolute -inset-8 bg-gradient-to-tr from-rose-500/25 via-pink-500/15 to-fuchsia-500/20 blur-3xl" />
+              <div className="relative grid grid-cols-2 gap-3 sm:gap-4">
+                {[
+                  { value: '5 credits', label: 'per Resume Analysis', icon: Zap },
+                  { value: '4 modules', label: 'Scored by our AI', icon: Brain },
+                  { value: 'ATS + JD', label: 'Matching insights', icon: Target },
+                  { value: 'PDF export', label: 'Improved CV download', icon: FileText },
+                ].map((s, i) => (
+                  <div
+                    key={s.label}
+                    className="group relative overflow-hidden rounded-2xl border border-rose-500/15 bg-white/[0.04] backdrop-blur-sm p-4 sm:p-6 text-left hover:bg-white/[0.08] hover:border-rose-500/40 hover:-translate-y-1.5 transition-all duration-300"
+                  >
+                    <div className={`absolute -top-10 -right-10 h-24 w-24 rounded-full bg-gradient-to-br ${i % 2 === 0 ? 'from-rose-500/20 to-pink-500/10' : 'from-pink-500/20 to-fuchsia-500/10'} blur-2xl group-hover:opacity-100 transition`} />
+                    <div className="relative mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500/20 to-pink-500/10 group-hover:from-rose-500/30 group-hover:to-pink-500/20 group-hover:scale-110 transition">
+                      <s.icon className="w-5 h-5 text-rose-300" />
+                    </div>
+                    <p className="relative text-2xl font-extrabold gradient-text">{s.value}</p>
+                    <p className="relative mt-1 text-sm text-foreground/60">{s.label}</p>
+                    <div className={`absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r ${i % 2 === 0 ? 'from-rose-500 to-pink-500' : 'from-pink-500 to-fuchsia-500'} opacity-0 group-hover:opacity-100 transition`} />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* scroll hint */}
+        <a href="#features" onClick={() => goTo('#features')} aria-label="Scroll to features" className="pointer-events-auto mx-auto flex h-10 w-6 items-start justify-center rounded-full border border-rose-500/30 pt-2">
+          <span className="h-2 w-1 animate-bounce rounded-full bg-rose-400" />
+        </a>
       </section>
 
       {/* Trusted strip */}
-      <section className="py-8 px-4 sm:px-6 lg:px-8">
+      {/* <section className="py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-xs uppercase tracking-[0.2em] text-foreground/50 mb-4">
             From entry-level candidates to senior professionals
@@ -443,10 +478,10 @@ export default function Home() {
             <span className="text-sm font-semibold">✦ Privacy-first</span>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Features */}
-      <section id="features" className="relative py-20 px-4 sm:px-6 lg:px-8">
+      <section id="features" className="relative py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16 max-w-2xl mx-auto">
             <span className="inline-block text-xs uppercase tracking-widest text-rose-300/80 mb-3">Features</span>
@@ -479,7 +514,7 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="relative py-20 px-4 sm:px-6 lg:px-8 border-t border-rose-500/10">
+      <section id="how-it-works" className="relative py-12 px-4 sm:px-6 lg:px-8 border-t border-rose-500/10">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16 max-w-2xl mx-auto">
             <span className="inline-block text-xs uppercase tracking-widest text-rose-300/80 mb-3">How it works</span>
@@ -507,7 +542,7 @@ export default function Home() {
       </section>
 
       {/* Benefits */}
-      <section id="benefits" className="relative py-20 px-4 sm:px-6 lg:px-8 border-t border-rose-500/10">
+      <section id="benefits" className="relative py-12 px-4 sm:px-6 lg:px-8 border-t border-rose-500/10">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div>
@@ -583,7 +618,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="py-20 px-4 sm:px-6 lg:px-8 border-t border-rose-500/10">
+      <section id="testimonials" className="py-12 px-4 sm:px-6 lg:px-8 border-t border-rose-500/10">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16 max-w-2xl mx-auto">
             <span className="inline-block text-xs uppercase tracking-widest text-rose-300/80 mb-3">Testimonials</span>
@@ -619,7 +654,7 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="relative py-20 px-4 sm:px-6 lg:px-8 border-t border-rose-500/10">
+      <section id="pricing" className="relative py-12 px-4 sm:px-6 lg:px-8 border-t border-rose-500/10">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16 max-w-2xl mx-auto">
             <span className="inline-block text-xs uppercase tracking-widest text-rose-300/80 mb-3">Pricing</span>
@@ -686,7 +721,7 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8">
+      <section className="relative py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="relative glow-card rounded-3xl p-10 md:p-16 text-center overflow-hidden">
             <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-72 h-72 bg-rose-500/30 blur-3xl rounded-full" />
@@ -716,11 +751,11 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-rose-500/10 py-14 px-4 sm:px-6 lg:px-8">
+      <footer className="border-t border-rose-500/10 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-10 mb-10">
             <div>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-lg gradient-accent flex items-center justify-center">
                   <Brain className="w-5 h-5 text-white" />
                 </div>
