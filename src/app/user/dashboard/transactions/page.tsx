@@ -88,16 +88,6 @@ const TransactionsPage: React.FC = () => {
       </header>
 
       <main className="space-y-6 p-4 sm:p-6">
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <article className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-5">
-            <p className="text-sm text-emerald-100/80">Credits Added</p>
-            <p className="mt-1 text-3xl font-bold text-emerald-100">+{summary.in}</p>
-          </article>
-          <article className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-5">
-            <p className="text-sm text-amber-100/80">Credits Spent</p>
-            <p className="mt-1 text-3xl font-bold text-amber-100">-{summary.out}</p>
-          </article>
-        </section>
 
         <section className="rounded-xl glow-card bg-white/5 p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between">
