@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, ArrowRight, Brain, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Brain, Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { RegisterFormData, RegisterFormErrors } from "@/types";
@@ -109,11 +109,9 @@ export default function Register() {
       const data = await response.json();
 
       if (!response.ok) {
-        const errorMessage = data?.error || "Failed to create account.";
-        setErrors({ general: errorMessage });
         toast({
           title: "Error",
-          description: errorMessage,
+          description: "Failed to create account. Please try again.",
           variant: "destructive"
         });
         return;
@@ -137,16 +135,10 @@ export default function Register() {
         setErrors({});
         router.push(`/user/verify/sent?email=${encodeURIComponent(registeredEmail)}`);
       }
-    } catch (error: unknown) {
-      let message = "An unexpected error occurred. Please try again.";
-      if (error instanceof Error) {
-        message = error.message;
-      }
-
-      setErrors({ general: message });
+    } catch {
       toast({
         title: "Error",
-        description: message,
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -202,15 +194,6 @@ export default function Register() {
                 <h2 className="text-2xl font-bold text-foreground">Create your account</h2>
                 <p className="mt-1 text-sm text-foreground/65">Join Resumind and improve your resume with AI</p>
               </div>
-
-              {errors.general && (
-                <div className="mb-5 rounded-lg border border-red-500/40 bg-red-500/10 p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="mt-0.5 h-4 w-4 text-red-300" />
-                    <p className="text-sm text-red-200">{errors.general}</p>
-                  </div>
-                </div>
-              )}
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

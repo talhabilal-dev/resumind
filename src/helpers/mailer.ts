@@ -41,7 +41,7 @@ export const sendEmail = async (
     }
 
     const { data, error } = await resend.emails.send({
-      from: `Acme <no-reply@${process.env.FROM_EMAIL_DOMAIN}>`,
+      from: `Resumind <support@mail.talhabilal.dev>`,
       to: Email,
       subject: `${EmailType} - ${subject}`,
       react: EmailTemplate({

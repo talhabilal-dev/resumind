@@ -107,6 +107,16 @@ export default function Login() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (data?.unverified && data?.email) {
+          toast({
+            title: "Verify your email",
+            description: "Please verify your email before signing in.",
+            variant: "destructive"
+          });
+          router.push(`/user/verify/sent?email=${encodeURIComponent(data.email)}`);
+          return;
+        }
+
         const errorMessage = data?.error || "Login failed. Please try again.";
         setErrors({ general: errorMessage });
         toast({

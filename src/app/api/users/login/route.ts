@@ -63,6 +63,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: "User is not verified. Please verify your email.",
+          email: user.email,
+          unverified: true,
           success: false,
         },
         { status: 403 }
