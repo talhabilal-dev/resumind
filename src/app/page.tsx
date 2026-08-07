@@ -378,14 +378,14 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <section className="relative flex flex-col justify-center pt-24 pb-12 px-4 sm:px-6 lg:min-h-screen lg:pt-32 lg:pb-14 lg:px-8">
+      <section className="relative min-h-screen flex flex-col justify-center pt-32 pb-14 px-4 sm:px-6 lg:px-8">
         {/* decorative orbs */}
         <div className="pointer-events-none absolute top-1/2 -left-40 -translate-y-1/2 h-96 w-96 rounded-full bg-rose-500/20 blur-3xl" />
         <div className="pointer-events-none absolute top-24 right-0 h-80 w-80 rounded-full bg-pink-500/20 blur-3xl" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-linear-to-b from-rose-900/30 to-transparent" />
 
         <div className="relative max-w-7xl mx-auto w-full flex-1 flex items-center">
-          <div className="grid w-full gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16 items-center">
+          <div className="grid w-full gap-12 lg:grid-cols-[1.1fr_1fr] lg:gap-16 items-center">
             {/* Left: copy + CTAs */}
             <div className="max-w-xl">
               <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-rose-500/20 rounded-full backdrop-blur-sm shadow-lg shadow-rose-950/10">
@@ -412,7 +412,7 @@ export default function Home() {
               <div className="mt-9 flex flex-col sm:flex-row items-start gap-4">
                 <Button
                   size="lg"
-                  className="group relative flex-1 w-full gradient-accent border-0 text-lg px-8 h-24 shadow-xl shadow-rose-600/40 hover:shadow-rose-500/60 hover:scale-[1.03] transition-all overflow-hidden"
+                  className="group relative flex-1 w-full gradient-accent border-0 text-lg px-8 h-14 shadow-xl shadow-rose-600/40 hover:shadow-rose-500/60 hover:scale-[1.03] transition-all overflow-hidden"
                   onClick={() => router.push('/user/register')}
                 >
                   <span className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700" />
@@ -434,7 +434,7 @@ export default function Home() {
             {/* Right: stat cards */}
             <div className="relative">
               <div className="pointer-events-none absolute -inset-8 bg-gradient-to-tr from-rose-500/25 via-pink-500/15 to-fuchsia-500/20 blur-3xl" />
-              <div className="relative grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="relative grid grid-cols-2 gap-4">
                 {[
                   { value: '5 credits', label: 'per Resume Analysis', icon: Zap },
                   { value: '4 modules', label: 'Scored by our AI', icon: Brain },
@@ -443,7 +443,7 @@ export default function Home() {
                 ].map((s, i) => (
                   <div
                     key={s.label}
-                    className="group relative overflow-hidden rounded-2xl border border-rose-500/15 bg-white/[0.04] backdrop-blur-sm p-4 sm:p-6 text-left hover:bg-white/[0.08] hover:border-rose-500/40 hover:-translate-y-1.5 transition-all duration-300"
+                    className="group relative overflow-hidden rounded-2xl border border-rose-500/15 bg-white/[0.04] backdrop-blur-sm p-6 text-left hover:bg-white/[0.08] hover:border-rose-500/40 hover:-translate-y-1.5 transition-all duration-300"
                   >
                     <div className={`absolute -top-10 -right-10 h-24 w-24 rounded-full bg-gradient-to-br ${i % 2 === 0 ? 'from-rose-500/20 to-pink-500/10' : 'from-pink-500/20 to-fuchsia-500/10'} blur-2xl group-hover:opacity-100 transition`} />
                     <div className="relative mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500/20 to-pink-500/10 group-hover:from-rose-500/30 group-hover:to-pink-500/20 group-hover:scale-110 transition">
